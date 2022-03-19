@@ -35,18 +35,16 @@ services:
       - redis
 
   api:
-    build: ./app
+    build: .
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_STORE_DB_INDEX=0
-
+    env_file:
+      - .env
     volumes:
       - ./data:/data
     depends_on:
       - redis
     ports:
-      - "5000:5000"
-
-  web:
-    build: ./
+      - "8000:8000"
