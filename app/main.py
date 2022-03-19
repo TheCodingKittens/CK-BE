@@ -1,15 +1,9 @@
-import datetime
-from typing import Optional
-
 import aioredis
 from aredis_om.connections import get_redis_connection
-from aredis_om.model import HashModel, NotFoundError
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from starlette.requests import Request
-from starlette.responses import Response
 
 from app.api.api_v1.api import api_router
 from app.utils.config import settings

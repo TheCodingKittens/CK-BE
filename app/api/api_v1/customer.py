@@ -9,19 +9,21 @@ from starlette.responses import Response
 router = APIRouter()
 
 
-@router.post("/customer")
+@router.post(
+    "",
+)
 async def save_customer(customer: Customer):
     # We can save the model to Redis by calling `save()`:
     return await customer.save()
 
 
-@router.get("/customers")
+@router.get("")
 async def list_customers(request: Request, response: Response):
     # To retrieve this customer with its primary key, we use `Customer.get()`:
     return {"customers": [pk async for pk in await Customer.all_pks()]}
 
 
-@router.get("/customer/{pk}")
+@router.get("/{pk}")
 @cache(expire=10)
 async def get_customer(pk: str, request: Request, response: Response):
     # To retrieve this customer with its primary key, we use `Customer.get()`:
