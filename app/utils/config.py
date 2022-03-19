@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
-from pydantic import AnyHttpUrl, BaseSettings, PostgresDsn, validator
+from pydantic import AnyHttpUrl, BaseSettings, validator
 from pydantic.fields import Field
 
 
@@ -10,10 +10,10 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
 
     # This Redis instance is tuned for durability.
-    REDIS_DATA_URL = "redis://redis:6379"
+    REDIS_DATA_URL: str = "redis://redis:6379"
 
     # This Redis instance is tuned for cache performance.
-    REDIS_CACHE_URL = "redis://redis:6379"
+    REDIS_CACHE_URL: str = "redis://redis:6379"
 
     class Config:
         case_sensitive = True
