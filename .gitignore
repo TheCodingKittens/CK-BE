@@ -11,8 +11,9 @@
 # Built Visual Studio Code Extensions
 *.vsix
 
-*.env
-.env
+
+# *.env
+# .env
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

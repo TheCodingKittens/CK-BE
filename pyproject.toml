@@ -8,8 +8,13 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = "^0.75.0"
-pytest = "^7.1.0"
+redis-om = "^0.0.17"
+fastapi-cache2 = {extras = ["redis"], version = "^0.1.8"}
+pydantic = {extras = ["email"], version = "^1.9.0"}
+aioredis = "^2.0.1"
 uvicorn = "^0.17.6"
+pytest = "^7.1.1"
+
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
