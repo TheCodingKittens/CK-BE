@@ -25,6 +25,8 @@ services:
     restart: always
     ports:
       - "6381:6379"
+    depends_on:
+      - redis
 
   redisinsight:
     image: "redislabs/redisinsight:latest"
