@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+
+  redis:
+    image: "redislabs/redismod:edge"
+    entrypoint:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--loadmodule",
+        "/usr/lib/redis/modules/rejson.so",
+        "--loadmodule",
+        "/usr/lib/redis/modules/redisearch.so"
+      ]
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./data:/data
+
+  oss_redis:
+    image: "redis:latest"
+    restart: always
+    ports:
+      - "6381:6379"
+    depends_on:
+      - redis
+
+  redisinsight:
+    image: "redislabs/redisinsight:latest"
+    restart: always
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+
+  api:
+    build: .
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_STORE_DB_INDEX=0
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
