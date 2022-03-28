@@ -10,9 +10,7 @@ from app.utils.config import settings
 
 
 def get_application():
-    _app = FastAPI(
-        title=settings.PROJECT_NAME, openapi_url="/swagger", redoc_url="/docs"
-    )
+    _app = FastAPI(title=settings.PROJECT_NAME, docs_url="/swagger", redoc_url="/docs")
 
     _app.add_middleware(
         CORSMiddleware,
