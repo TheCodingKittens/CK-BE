@@ -8,8 +8,5 @@
   before_install:
     - docker build -t travis .
 
-  install:
-    - pip install -r requirements.txt
-
   script:
     - pytest
