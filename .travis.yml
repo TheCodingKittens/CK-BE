@@ -7,7 +7,7 @@ services:
 
 before_install:
   - docker build -t image .
-  - docker run -p 8000:8000 --name travis image -d
+  - docker run -d -p 8000:8000 --name travis image
 
 script:
   - docker exec -i travis pytest
