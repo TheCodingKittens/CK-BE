@@ -6,7 +6,7 @@ from pydantic.fields import Field
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "Coding Kittens"
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
 
     # This Redis instance is tuned for durability.
