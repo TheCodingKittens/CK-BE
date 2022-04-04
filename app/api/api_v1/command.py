@@ -1,7 +1,11 @@
+import libcst as cst
 from app.models.command import Command
+from app.services.lib_cst import TypingCollector, TypingTransformer
+from app.utils.deps import create_vistor
 from aredis_om.model import HashModel, NotFoundError
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_cache.decorator import cache
+from libcst.tool import dump
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -9,8 +13,10 @@ router = APIRouter()
 
 
 @router.post("", response_model=Command)
-async def save_command(command: Command):
+async def save_command(command: Command, vistor: TypingCollector = Depends(create_vistor)):
     # We can save the model to Redis by calling `save()`:
+
+    
     return await command.save()
 
 
