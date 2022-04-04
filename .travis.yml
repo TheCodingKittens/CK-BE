@@ -1,6 +1,6 @@
   language: python
   python:
-    - "3.9"
+    - "3.10"
 
   services:
     - docker
@@ -8,5 +8,6 @@
   before_install:
     - docker build -t travis .
 
+    
   script:
     - pytest

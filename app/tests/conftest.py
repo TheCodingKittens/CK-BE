@@ -1,12 +1,11 @@
-# from typing import Generator
+from typing import Generator
 
-# import pytest
+import pytest
+from app.main import get_application
+from fastapi.testclient import TestClient
 
-# from fastapi.testclient import TestClient
-# from app.main import get_application
 
-
-# @pytest.fixture(scope="module")
-# def client() -> Generator:
-#     with TestClient(get_application) as c:
-#         yield
+@pytest.fixture(scope="module")
+def client() -> Generator:
+    with TestClient(get_application) as c:
+        yield
