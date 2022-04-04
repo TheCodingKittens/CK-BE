@@ -13,10 +13,11 @@ router = APIRouter()
 
 
 @router.post("", response_model=Command)
-async def save_command(command: Command, vistor: TypingCollector = Depends(create_vistor)):
+async def save_command(
+    command: Command, vistor: TypingCollector = Depends(create_vistor)
+):
     # We can save the model to Redis by calling `save()`:
 
-    
     return await command.save()
 
 
@@ -36,7 +37,7 @@ async def get_command(pk: str, request: Request, response: Response):
         raise HTTPException(status_code=404, detail="Command not found")
 
 
-@router.put("/{pk}", response_model=Command)
+@router.put("", response_model=Command)
 async def put_command(pk: str, command: Command, response: Response) -> Command:
     try:
         existing_command = await Command.get(pk)
