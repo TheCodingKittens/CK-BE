@@ -10,7 +10,7 @@ from app.utils.config import settings
 
 
 def get_application():
-    _app = FastAPI(title=settings.PROJECT_NAME)
+    _app = FastAPI(title=settings.PROJECT_NAME, docs_url="/swagger", redoc_url="/docs")
 
     _app.add_middleware(
         CORSMiddleware,
@@ -38,4 +38,6 @@ async def startup():
     r = aioredis.from_url(
         settings.REDIS_CACHE_URL, encoding="utf8", decode_responses=True
     )
+
     FastAPICache.init(RedisBackend(r), prefix="fastapi-cache")
+    print("Start up Successful")
