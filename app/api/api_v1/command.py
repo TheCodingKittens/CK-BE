@@ -47,7 +47,7 @@ async def get_command(pk: str, request: Request, response: Response):
 @router.put("/{pk}", response_model=CommandRead)
 async def put_command(pk: str, command: Command, response: Response) -> CommandRead:
     try:
-        return await crud.command.create(obj_in=command)
+        return await crud.command.update(pk=pk, obj_in=command)
 
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Command not found")
