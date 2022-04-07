@@ -1,5 +1,6 @@
 import aioredis
 from aredis_om.connections import get_redis_connection
+from aredis_om.model.migrations.migrator import Migrator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
@@ -38,6 +39,7 @@ async def startup():
     r = aioredis.from_url(
         settings.REDIS_CACHE_URL, encoding="utf8", decode_responses=True
     )
-
+    get_redis_connection(url=settings.REDIS_DATA_URL, decode_responses=True)
+    await Migrator().run()
     FastAPICache.init(RedisBackend(r), prefix="fastapi-cache")
     print("Start up Successful")
