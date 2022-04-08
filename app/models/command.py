@@ -8,6 +8,9 @@ from aredis_om.model import Field, HashModel, NotFoundError
 from pydantic import BaseModel
 
 
+class UserInput(BaseModel):
+    command: str
+
 
 class CommandCreate(HashModel):
     command: str = Field(title="The User's Command", index=True)
@@ -35,4 +38,5 @@ class Command(BaseModel):
 
 class CommandRead(Command):
     """Pydantic Command Object"""
+
     pk: str = Field(title="Primary Key", index=True)
