@@ -2,7 +2,7 @@ from typing import List
 
 import libcst as cst
 from app import crud
-from app.models.command import Command, CommandRead
+from app.models.command import Command, CommandRead, UserInput
 from app.services.parser import Parser, TypingCollector, TypingTransformer
 from app.utils.deps import create_parser, create_vistor
 from aredis_om.model import HashModel, NotFoundError
@@ -15,10 +15,12 @@ router = APIRouter()
 
 
 @router.post("", response_model=CommandRead)
-async def save_command(command: str, parser: Parser = Depends(Parser)) -> CommandRead:
+async def save_command(
+    userinput: UserInput, parser: Parser = Depends(Parser)
+) -> CommandRead:
     # We can save the model to Redis by calling `save()`:
 
-    parsed_expression = parser.parse_expression(command)
+    parsed_expression = parser.parse_expression(userinput.command)
     return await crud.command.create(obj_in=parsed_expression)
 
     # Save the Command and return the newly saved command
