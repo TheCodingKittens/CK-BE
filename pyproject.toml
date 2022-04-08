@@ -6,7 +6,7 @@ authors = ["Matthew Aylward <matthewtyleraylward@hotmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 fastapi = "^0.75.0"
 redis-om = "^0.0.17"
 fastapi-cache2 = {extras = ["redis"], version = "^0.1.8"}
@@ -16,7 +16,8 @@ uvicorn = "^0.17.6"
 pytest = "^7.1.1"
 libcst = "^0.4.1"
 requests = "^2.27.1"
-
+pytest-cov = "^3.0.0"
+coveralls = "^3.3.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
