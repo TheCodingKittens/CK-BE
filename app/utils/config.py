@@ -2,7 +2,6 @@ from functools import lru_cache
 from typing import Any, Dict, List
 
 from pydantic import AnyHttpUrl, BaseSettings, validator
-from pydantic.fields import Field
 
 
 class Settings(BaseSettings):

@@ -14,6 +14,7 @@ pydantic = {extras = ["email"], version = "^1.9.0"}
 aioredis = "^2.0.1"
 uvicorn = "^0.17.6"
 pytest = "^7.1.1"
+libcst = "^0.4.1"
 requests = "^2.27.1"
 
 
