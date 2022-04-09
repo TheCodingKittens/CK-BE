@@ -2,20 +2,25 @@ language: python
 python:
   - "3.9"
 
-services:
-  - docker
+# services:
+#   - docker
 
 addons:
   sonarcloud:
-    organization: "thecodingkittens" # the key of the org you chose at step #3
+    organization: "thecodingkittens"
 
-before_install:
-  - docker build -t image .
-  - docker run -d -p 8000:8000 --name travis image
+# before_install:
+#   - docker build -t image .
+#   - docker run -d -p 8000:8000 --name travis image
+
+install:
+  - pip install pytest
+  - pip install pytest-cov
+  - pip install coveralls
 
 script:
-  - docker exec -i travis pytest --cov=app
-  - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH"
+  # - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" -i travis pytest --cov=app
+  - pytest --cov=app
   - sonar-scanner
 
 after_success:
