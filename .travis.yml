@@ -17,9 +17,11 @@ install:
   - pip install pytest
   - pip install pytest-cov
   - pip install coveralls
+  - pip install poetry
 
 before_script:
   - export PYTHONPATH="$PYTHONPATH:/app"
+  - poetry export -f requirements.txt --output requirements.txt --without-hashes
 
 script:
   # - docker exec -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" -i travis pytest --cov=app
