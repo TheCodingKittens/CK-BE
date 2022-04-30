@@ -1,4 +1,4 @@
-from app.services.parser import Parser, TypingCollector, TypingTransformer
+from app.services.parser import Parser, TypingCollector
 
 
 def create_vistor() -> TypingCollector:
