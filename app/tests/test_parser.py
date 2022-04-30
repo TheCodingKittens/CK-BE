@@ -1,5 +1,5 @@
 import libcst as cst
-from app.services.parser import Parser, TypingCollector
+from app.services.parser import Parser
 
 
 def test_pass_module(parser: Parser):

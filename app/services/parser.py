@@ -1,40 +1,61 @@
-import re
-from cgitb import reset
 from typing import Dict, List, Optional, Tuple
 
 import libcst as cst
 from app.models.command import Command
 from app.models.command_data import CommandData
+from app.services.nodetojson import NodeToJSONConverter
 
 
-class TypingCollector(cst.CSTVisitor):
+class CustomVisitor(cst.CSTVisitor):
     def __init__(self):
-        # stack for storing the canonical name of the current function
+        # store all the JSON content
         self.stack: List[Tuple[str, ...]] = []
         # store the annotations
-        self.annotations: Dict[
-            Tuple[str, ...],  # key: tuple of canonical class/function name
-            Tuple[cst.Parameters, Optional[cst.Annotation]],  # value: (params, returns)
-        ] = {}
+        # self.annotations: Dict[
+        #     Tuple[str, ...],  # key: tuple of canonical class/function name
+        #     Tuple[cst.Parameters, Optional[cst.Annotation]],  # value: (params, returns)
+        # ] = {}
 
-    def visit_ClassDef(self, node: cst.ClassDef) -> Optional[bool]:
-        self.stack.append(node.name.value)
+    # --------------------------------- ASSIGN -------------------------------
+    def visit_Assign(self, node: "Assign") -> Optional[bool]:
+        print("---------- VISITED ASSIGN! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
 
-    def leave_ClassDef(self, node: cst.ClassDef) -> None:
-        self.stack.pop()
+    # --------------------------------- FOR -------------------------------
+    def visit_For(self, node: "For") -> Optional[bool]:
+        print("---------- VISITED FOR! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
 
-    def visit_FunctionDef(self, node: cst.FunctionDef) -> Optional[bool]:
-        self.stack.append(node.name.value)
-        self.annotations[tuple(self.stack)] = (node.params, node.returns)
-        return False  # pyi files don't support inner functions, return False to stop the traversal.
+    # --------------------------------- IF -------------------------------
+    def visit_If(self, node: "If") -> Optional[bool]:
+        print("---------- VISITED IF! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
 
-    def leave_FunctionDef(self, node: cst.FunctionDef) -> None:
-        self.stack.pop()
+    # --------------------------------- COMPARISON -------------------------------
+    def visit_Comparison(self, node: "Comparison") -> Optional[bool]:
+        print("---------- VISITED COMPARISON! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
 
 
 class Parser:
     def __init__(self):
-        self.collector = TypingCollector()
+        self.visitor = CustomVisitor()
 
     def parse_binaryoperation(self, node: cst.BinaryOperation) -> List[CommandData]:
         try:
@@ -66,12 +87,13 @@ class Parser:
         try:
 
             parsed_module = cst.parse_module(module)
-            visted_module = parsed_module.visit(self.collector)
+            visted_module = parsed_module.visit(self.visitor)
 
             return visted_module
 
         except cst.ParserSyntaxError as e:
             print("Error:", e)
+
 
 # Example of how to Use the collector and transformer
 
@@ -102,7 +124,6 @@ def tokenize(
 # source_tree = cst.parse_module(py_source)
 # stub_tree = cst.parse_module(pyi_source)
 
-# visitor = TypingCollector()
 # stub_tree.visit(visitor)
 # transformer = TypingTransformer(visitor.annotations)
 # modified_tree = source_tree.visit(transformer)

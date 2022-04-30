@@ -3,25 +3,70 @@ import re
 import uuid
 from typing import Dict, List, Optional, Tuple
 
-import libcst
 import libcst as cst
 
+
+class CustomVisitor(cst.CSTVisitor):
+    def __init__(self):
+        # store all the JSON content
+        self.stack: List[Tuple[str, ...]] = []
+        # store the annotations
+        # self.annotations: Dict[
+        #     Tuple[str, ...],  # key: tuple of canonical class/function name
+        #     Tuple[cst.Parameters, Optional[cst.Annotation]],  # value: (params, returns)
+        # ] = {}
+
+    # --------------------------------- ASSIGN -------------------------------
+    def visit_Assign(self, node: "Assign") -> Optional[bool]:
+        print("---------- VISITED ASSIGN! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
+
+    # --------------------------------- FOR -------------------------------
+    def visit_For(self, node: "For") -> Optional[bool]:
+        print("---------- VISITED FOR! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
+
+    # --------------------------------- IF -------------------------------
+    def visit_If(self, node: "If") -> Optional[bool]:
+        print("---------- VISITED IF! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
+
+    # --------------------------------- COMPARISON -------------------------------
+    def visit_Comparison(self, node: "Comparison") -> Optional[bool]:
+        print("---------- VISITED COMPARISON! ----------")
+        nodeToJSONConverter = NodeToJSONConverter(node)
+        json_objects = nodeToJSONConverter.json_objects
+        for json_object in json_objects:
+            self.stack.append(json_object)
+            # print(json.dumps(json_object, indent=4, sort_keys=False))
+
+
 class NodeToJSONConverter:
-    def __init__(self, node):
-        self.node = node
+    def __init__(self, Node):
         self.json_objects = []
+        self.node = Node
 
-        # Look for Assignments
-        if isinstance(node, libcst._nodes.statement.Assign):
-            self.create_json_object_assign()
-
-        # Look for If's
-        if isinstance(node, libcst._nodes.statement.If):
-            self.create_json_if()
-
-        # Look for Comparisons
-        if isinstance(node, libcst._nodes.expression.Comparison):
-            self.create_json_comparison()
+        match (self.node.__class__.__name__):
+            case "Assign":
+                self.create_json_object_assign()
+            case "If":
+                self.create_json_if()
+            case "Comparison":
+                self.create_json_comparison()
+            case _:
+                print("ERROR: Unknown node type")
 
     @staticmethod
     def extract_field(string, start_string, end_string):
@@ -80,11 +125,11 @@ class NodeToJSONConverter:
         # recursive calls to parse the test and body sections
         customVisitor = CustomVisitor()
         visited_test = test.visit(customVisitor)
-        value_test = customVisitor.content
+        value_test = customVisitor.stack
 
         customVisitor = CustomVisitor()
         visited_body = body.visit(customVisitor)
-        value_body = customVisitor.content
+        value_body = customVisitor.stack
 
         # TODO make CommandData objects out of it
         id = str(uuid.uuid4())

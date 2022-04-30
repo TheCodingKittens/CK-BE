@@ -1,8 +1,8 @@
-from app.services.parser import Parser, TypingCollector
+from app.services.parser import CustomVisitor, Parser
 
 
-def create_vistor() -> TypingCollector:
-    return TypingCollector()
+def create_vistor() -> CustomVisitor:
+    return CustomVisitor()
 
 
 def create_parser() -> Parser:
