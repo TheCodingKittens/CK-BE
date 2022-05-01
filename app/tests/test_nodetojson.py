@@ -1,3 +1,6 @@
+import json
+
+import jsonpickle
 import libcst as cst
 from app.services.nodetojson import NodeToJSONConverter
 from app.services.parser import Parser
@@ -39,5 +42,7 @@ for i in range(5):
     value = i"""
 
     parsed_module = parser.parse_module(command)
+
+    value = jsonpickle.dumps(parsed_module)
 
     for_node = NodeToJSONConverter(parsed_module.body[0])

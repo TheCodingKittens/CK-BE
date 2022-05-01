@@ -2,39 +2,15 @@ version: "3.8"
 
 services:
 
-  redis:
-    image: "redislabs/redismod:edge"
-    entrypoint:
-      [
-        "redis-server",
-        "--appendonly",
-        "yes",
-        "--loadmodule",
-        "/usr/lib/redis/modules/rejson.so",
-        "--loadmodule",
-        "/usr/lib/redis/modules/redisearch.so"
-      ]
-    restart: always
+  db:
+    image: mongo:latest
     ports:
-      - "6380:6379"
+      - "27017:27017"
     volumes:
-      - ./data:/data
-
-  oss_redis:
-    image: "redis:latest"
-    restart: always
-    ports:
-      - "6381:6379"
-    depends_on:
-      - redis
-
-  redisinsight:
-    image: "redislabs/redisinsight:latest"
-    restart: always
-    ports:
-      - "8001:8001"
-    depends_on:
-      - redis
+      - ./data/db:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=MONGO
+      - MONGO_INITDB_ROOT_PASSWORD=SECRET
 
   api:
     build: .
