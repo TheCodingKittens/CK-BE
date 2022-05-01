@@ -3,70 +3,13 @@ import re
 import uuid
 from typing import Dict, List, Optional, Tuple
 
-import libcst as cst
+from app.services.visitor import CustomVisitor
 
 
-class CustomVisitor(cst.CSTVisitor):
-    def __init__(self):
-        # store all the JSON content
-        self.stack: List[Tuple[str, ...]] = []
-        # store the annotations
-        # self.annotations: Dict[
-        #     Tuple[str, ...],  # key: tuple of canonical class/function name
-        #     Tuple[cst.Parameters, Optional[cst.Annotation]],  # value: (params, returns)
-        # ] = {}
-
-    # --------------------------------- ASSIGN -------------------------------
-    def visit_Assign(self, node: "Assign") -> Optional[bool]:
-        print("---------- VISITED ASSIGN! ----------")
-        nodeToJSONConverter = NodeToJSONConverter(node)
-        json_objects = nodeToJSONConverter.json_objects
-        for json_object in json_objects:
-            self.stack.append(json_object)
-            # print(json.dumps(json_object, indent=4, sort_keys=False))
-
-    # --------------------------------- FOR -------------------------------
-    def visit_For(self, node: "For") -> Optional[bool]:
-        print("---------- VISITED FOR! ----------")
-        nodeToJSONConverter = NodeToJSONConverter(node)
-        json_objects = nodeToJSONConverter.json_objects
-        for json_object in json_objects:
-            self.stack.append(json_object)
-            # print(json.dumps(json_object, indent=4, sort_keys=False))
-
-    # --------------------------------- IF -------------------------------
-    def visit_If(self, node: "If") -> Optional[bool]:
-        print("---------- VISITED IF! ----------")
-        nodeToJSONConverter = NodeToJSONConverter(node)
-        json_objects = nodeToJSONConverter.json_objects
-        for json_object in json_objects:
-            self.stack.append(json_object)
-            # print(json.dumps(json_object, indent=4, sort_keys=False))
-
-    # --------------------------------- COMPARISON -------------------------------
-    def visit_Comparison(self, node: "Comparison") -> Optional[bool]:
-        print("---------- VISITED COMPARISON! ----------")
-        nodeToJSONConverter = NodeToJSONConverter(node)
-        json_objects = nodeToJSONConverter.json_objects
-        for json_object in json_objects:
-            self.stack.append(json_object)
-            # print(json.dumps(json_object, indent=4, sort_keys=False))
-
-
+# This class defines a JSON converter, which is used to create JSON objects out of CSTNodes
 class NodeToJSONConverter:
-    def __init__(self, Node):
-        self.json_objects = []
-        self.node = Node
-
-        match (self.node.__class__.__name__):
-            case "Assign":
-                self.create_json_object_assign()
-            case "If":
-                self.create_json_if()
-            case "Comparison":
-                self.create_json_comparison()
-            case _:
-                print("ERROR: Unknown node type")
+    def __init__(self):
+        self.nodes = []
 
     @staticmethod
     def extract_field(string, start_string, end_string):
@@ -74,9 +17,28 @@ class NodeToJSONConverter:
         return re.search(pattern, string).group(1)
 
     # --------------------------------- ASSIGN -------------------------------
-    def create_json_object_assign(self):
-        targets = self.node.targets
-        value = self.node.value
+    # TODO change structure so that "type" is "Assign"
+    def create_json(self, node):
+
+        json_objects = []
+
+        match (node.__class__.__name__):
+            case "Assign":
+                json_objects = self.create_json_object_assign(node)
+            case "If":
+                json_objects = self.create_json_if(node)
+            case "Comparison":
+                json_objects = self.create_json_comparison(node)
+            case _:
+                print("ERROR: Unknown node type")
+
+        return json_objects
+
+    def create_json_object_assign(self, node):
+
+        targets = node.targets
+        value = node.value
+        json_objects = []
 
         # GRIGOR: Multiple assignments on one line, e.g. a,b=2,3
         if hasattr(value, "elements"):
@@ -94,13 +56,13 @@ class NodeToJSONConverter:
                     "name": var_name,
                     "value": var_value,
                 }
-                self.json_objects.append(data)
+                json_objects.append(data)
 
         # GRIGOR: One assignment only, e.g. a=3
         else:
             var_value = self.extract_field(str(value), "value=", ",")
             var_name = self.extract_field(str(targets[0]), "value=", ",")
-            var_type = self.extract_field(str(self.node), "value=", "\\(")
+            var_type = self.extract_field(str(node), "value=", "\\(")
 
             data = {
                 "id": str(uuid.uuid4()),
@@ -108,28 +70,25 @@ class NodeToJSONConverter:
                 "name": var_name,
                 "value": var_value,
             }
-            self.json_objects.append(data)
+            json_objects.append(data)
 
-        return {}
+        return json_objects
 
     # --------------------------------- IF -------------------------------
-    def create_json_if(self):
+    def create_json_if(self, node):
 
-        test = self.node.test
-        body = self.node.body
-        # print("TEST:")
-        # print(test)
-        # print("BODY:")
-        # print(body)
+        test = node.test
+        body = node.body
+        json_objects = []
 
         # recursive calls to parse the test and body sections
         customVisitor = CustomVisitor()
         visited_test = test.visit(customVisitor)
-        value_test = customVisitor.stack
+        value_test = customVisitor.content
 
         customVisitor = CustomVisitor()
         visited_body = body.visit(customVisitor)
-        value_body = customVisitor.stack
+        value_body = customVisitor.content
 
         # TODO make CommandData objects out of it
         id = str(uuid.uuid4())
@@ -146,14 +105,15 @@ class NodeToJSONConverter:
             "value": value_body,
         }
 
-        self.json_objects.append(test)
-        self.json_objects.append(body)
+        json_objects.append(test)
+        json_objects.append(body)
+
+        return json_objects
 
     # --------------------------------- COMPARISON -------------------------------
-    def create_json_comparison(self):
+    def create_json_comparison(self, node):
 
-        # print("CHILDREN")
-        # print(self.node.children)
+        json_objects = []
 
         # TODO make CommandData objects out of it
         id = str(uuid.uuid4())
@@ -163,4 +123,6 @@ class NodeToJSONConverter:
             "left": "a",  # TODO extract
             "right": "3",  # TODO extract
         }
-        self.json_objects.append(data)
+        json_objects.append(data)
+
+        return json_objects
