@@ -3,7 +3,7 @@ from typing import List
 import libcst as cst
 from app import crud
 from app.models.command import Command, CommandRead, UserInput
-from app.services.parser import Parser, TypingCollector, TypingTransformer
+from app.services.parser import Parser
 from app.utils.deps import create_parser, create_vistor
 from aredis_om.model import HashModel, NotFoundError
 from fastapi import APIRouter, Depends, HTTPException

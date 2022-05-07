@@ -3,9 +3,11 @@ from typing import Dict, List, Optional, Tuple
 import libcst as cst
 from app.models.command import Command
 from app.models.command_data import CommandData
-from app.services.visitor import CustomVisitor
+from app.services.nodetojson import CustomVisitor
 
-
+"""
+class to parse incoming strings from the frontend
+"""
 class Parser:
     def __init__(self):
         self.visitor = CustomVisitor()
@@ -42,10 +44,9 @@ class Parser:
             self.visitor = CustomVisitor()
 
             parsed_module = cst.parse_module(module)
-            visted_module = parsed_module.visit(self.visitor)
-
+            parsed_module.visit(self.visitor)
+            
             return self.visitor.stack
-            # return visted_module
 
         except cst.ParserSyntaxError as e:
             print("Error:", e)
