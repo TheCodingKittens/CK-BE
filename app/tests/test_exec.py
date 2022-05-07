@@ -30,3 +30,34 @@ if a == 3:
 
     assert loc["a"] == 3
     assert loc["value"] == 6
+
+
+def test_name_error():
+    the_code = """
+a=3
+if b == 3:
+    value = 6
+"""
+
+    loc = {}
+
+    try:
+        exec(the_code, globals(), loc)
+    except Exception as e:
+        print(e)
+        assert True
+
+def test_syntax_error():
+    the_code = """
+a=3
+if b == 3:
+value = 6
+"""
+
+    loc = {}
+
+    try:
+        exec(the_code, globals(), loc)
+    except Exception as e:
+        print(e)
+        assert True
