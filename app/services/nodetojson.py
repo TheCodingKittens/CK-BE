@@ -109,17 +109,18 @@ class NodeToJSONConverter:
                     "type": "Assign",
                     "left": var_name,
                     "right": var_value,
+                    "command": var_name+" = "+var_value
                 }
 
                 json_objects.append(data)
 
-        # GRIGOR: One assignment only, e.g. a=3
+        # GRIGOR: One assignment only, e.g. a=3 / a=3+3
         else:
-            
-            if value.__class__.__name__ == "BinaryOperation":
+
+            if value.__class__.__name__ == "BinaryOperation" or value.__class__.__name__ == "Comparison":
                 customVisitor = CustomVisitor()
                 value.visit(customVisitor)
-                var_value = customVisitor.stack
+                var_value = customVisitor.stack[0]["command"]
             else:
                 var_value = value.value
             var_name = targets[0].target.value
@@ -128,7 +129,8 @@ class NodeToJSONConverter:
                 "id": str(uuid.uuid4()),
                 "type": "Assign",
                 "left": var_name,
-                "right": var_value
+                "right": var_value,
+                "command": var_name+" = "+var_value
             }
 
             json_objects.append(data)
@@ -141,14 +143,21 @@ class NodeToJSONConverter:
         json_objects = []
 
         left = node.target.value
-        right = node.value.value
+        if node.value.__class__.__name__ == "BinaryOperation":
+            customVisitor = CustomVisitor()
+            node.value.visit(customVisitor)
+            right = customVisitor.stack[0]["command"]
+        else:
+            right = node.value.value
         type = node.operator.__class__.__name__
+        type_text = node.operator._get_token()
 
         data = {
             "id": str(uuid.uuid4()),
             "type": type,
             "left": left,
-            "right": right
+            "right": right,
+            "command": left+" "+type_text+" "+right
         }
 
         json_objects.append(data)
@@ -165,7 +174,7 @@ class NodeToJSONConverter:
         # recursive calls to parse the test and body sections
         customVisitor = CustomVisitor()
         test.visit(customVisitor)
-        value_test = customVisitor.stack
+        value_test = customVisitor.stack[0]["command"]
 
         customVisitor = CustomVisitor()
         body.visit(customVisitor)
@@ -188,7 +197,8 @@ class NodeToJSONConverter:
         test = {
             "id": str(uuid.uuid4()),
             "type": type_test,  # no need to extract, always the same
-            "value": value_test
+            "value": value_test,
+            "command": node.__class__.__name__.lower()+" "+value_test+":"
         }
         body = {
             "id": str(uuid.uuid4()),
@@ -216,20 +226,20 @@ class NodeToJSONConverter:
         json_objects = []
 
         name = node.left.value
-
         comparator = node.comparisons[0].comparator.value
-
         comparison_type = (
             node.__class__.__name__
             + "."
             + node.children[1].children[0].__class__.__name__
         )
+        type_text = node.comparisons[0].operator._get_token()
 
         data = {
             "id": str(uuid.uuid4()),
             "type": comparison_type,
             "left": name,
             "right": comparator,
+            "command": name+" "+type_text+" "+comparator
         }
 
         json_objects.append(data)
@@ -243,12 +253,14 @@ class NodeToJSONConverter:
         left = node.left.value
         right = node.right.value
         type = node.operator.__class__.__name__
+        type_text = node.operator._get_token()
 
         data = {
             "id": str(uuid.uuid4()),
             "type": type,
             "left": left,
             "right": right,
+            "command": left+" "+type_text+" "+right
         }
 
         json_objects.append(data)
