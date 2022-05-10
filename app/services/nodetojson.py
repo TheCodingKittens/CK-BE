@@ -115,7 +115,13 @@ class NodeToJSONConverter:
 
         # GRIGOR: One assignment only, e.g. a=3
         else:
-            var_value = value.value
+            
+            if value.__class__.__name__ == "BinaryOperation":
+                customVisitor = CustomVisitor()
+                value.visit(customVisitor)
+                var_value = customVisitor.stack
+            else:
+                var_value = value.value
             var_name = targets[0].target.value
 
             data = {

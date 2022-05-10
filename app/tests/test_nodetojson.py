@@ -1,4 +1,3 @@
-import libcst as cst
 from app.services.nodetojson import NodeToJSONConverter
 from app.services.parser import Parser
 
@@ -85,6 +84,19 @@ def test_aug_assign(parser: Parser):
     assert command2_parsed[0]["left"] == "b"
     assert command2_parsed[0]["right"] == "2"
     assert len(command2_parsed) == 1
+
+
+def test_assign_binary(parser: Parser):
+
+    command = """a = b + 1"""
+
+    command_parsed = parser.parse_module(command)
+
+    assert command_parsed[0]["type"] == "Assign"
+    assert command_parsed[0]["left"] == "a"
+    assert command_parsed[0]["right"][0]["type"] == "Add"
+    assert command_parsed[0]["right"][0]["left"] == "b"
+    assert command_parsed[0]["right"][0]["right"] == "1"
 
 
 def test_comparison(parser: Parser):
