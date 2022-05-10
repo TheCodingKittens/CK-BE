@@ -8,8 +8,6 @@ import libcst as cst
 """
 Class to visit all the nodes relevant for the project
 """
-
-
 class CustomVisitor(cst.CSTVisitor):
     def __init__(self):
         # store all the JSON content in a stack
@@ -43,16 +41,17 @@ class CustomVisitor(cst.CSTVisitor):
 
     def visit_Comparison(self, node: "Comparison") -> Optional[bool]:
         return self.visit_node(node)
-
+    
     def visit_BooleanOperation(self, node: "BooleanOperation") -> Optional[bool]:
         return self.visit_node(node)
-
+    
     def visit_BinaryOperation(self, node: "BinaryOperation") -> Optional[bool]:
         return self.visit_node(node)
 
     # TODO create an overall method that is called for every node type
     # def on_visit(self, node: cst.CSTNode) -> bool:
     #     self.visit_node(node)
+
 
 
 # This class defines a JSON converter, which is used to create JSON objects out of CSTNodes
@@ -110,17 +109,18 @@ class NodeToJSONConverter:
                     "type": "Assign",
                     "left": var_name,
                     "right": var_value,
+                    "command": var_name+" = "+var_value
                 }
 
                 json_objects.append(data)
 
-        # GRIGOR: One assignment only, e.g. a=3
+        # GRIGOR: One assignment only, e.g. a=3 / a=3+3
         else:
 
-            if value.__class__.__name__ == "BinaryOperation":
+            if value.__class__.__name__ == "BinaryOperation" or value.__class__.__name__ == "Comparison":
                 customVisitor = CustomVisitor()
                 value.visit(customVisitor)
-                var_value = customVisitor.stack
+                var_value = customVisitor.stack[0]["command"]
             else:
                 var_value = value.value
             var_name = targets[0].target.value
@@ -130,6 +130,7 @@ class NodeToJSONConverter:
                 "type": "Assign",
                 "left": var_name,
                 "right": var_value,
+                "command": var_name+" = "+var_value
             }
 
             json_objects.append(data)
@@ -142,10 +143,22 @@ class NodeToJSONConverter:
         json_objects = []
 
         left = node.target.value
-        right = node.value.value
+        if node.value.__class__.__name__ == "BinaryOperation":
+            customVisitor = CustomVisitor()
+            node.value.visit(customVisitor)
+            right = customVisitor.stack[0]["command"]
+        else:
+            right = node.value.value
         type = node.operator.__class__.__name__
+        type_text = node.operator._get_token()
 
-        data = {"id": str(uuid.uuid4()), "type": type, "left": left, "right": right}
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": type,
+            "left": left,
+            "right": right,
+            "command": left+" "+type_text+" "+right
+        }
 
         json_objects.append(data)
         return json_objects
@@ -161,7 +174,7 @@ class NodeToJSONConverter:
         # recursive calls to parse the test and body sections
         customVisitor = CustomVisitor()
         test.visit(customVisitor)
-        value_test = customVisitor.stack
+        value_test = customVisitor.stack[0]["command"]
 
         customVisitor = CustomVisitor()
         body.visit(customVisitor)
@@ -175,7 +188,7 @@ class NodeToJSONConverter:
             elseNode = {
                 "id": str(uuid.uuid4()),
                 "type": "If.else",  # no need to extract, always the same
-                "value": value_else,
+                "value": value_else
             }
 
         type_test = node.__class__.__name__ + "." + "test"
@@ -185,20 +198,21 @@ class NodeToJSONConverter:
             "id": str(uuid.uuid4()),
             "type": type_test,  # no need to extract, always the same
             "value": value_test,
+            "command": node.__class__.__name__.lower()+" "+value_test+":"
         }
         body = {
             "id": str(uuid.uuid4()),
             "type": type_body,  # no need to extract, always the same
-            "value": value_body,
+            "value": value_body
         }
 
         json_objects.append(test)
         json_objects.append(body)
         if elseNode is not None:
             json_objects.append(elseNode)
-
+        
         return json_objects
-
+    
     # --------------------------------- FOR -------------------------------
     # TODO
     def create_json_for(self, node):
@@ -212,20 +226,20 @@ class NodeToJSONConverter:
         json_objects = []
 
         name = node.left.value
-
         comparator = node.comparisons[0].comparator.value
-
         comparison_type = (
             node.__class__.__name__
             + "."
             + node.children[1].children[0].__class__.__name__
         )
+        type_text = node.comparisons[0].operator._get_token()
 
         data = {
             "id": str(uuid.uuid4()),
             "type": comparison_type,
             "left": name,
             "right": comparator,
+            "command": name+" "+type_text+" "+comparator
         }
 
         json_objects.append(data)
@@ -239,12 +253,14 @@ class NodeToJSONConverter:
         left = node.left.value
         right = node.right.value
         type = node.operator.__class__.__name__
+        type_text = node.operator._get_token()
 
         data = {
             "id": str(uuid.uuid4()),
             "type": type,
             "left": left,
             "right": right,
+            "command": left+" "+type_text+" "+right
         }
 
         json_objects.append(data)
