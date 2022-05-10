@@ -1,4 +1,17 @@
+import contextlib
 import pdb
+import sys
+from io import StringIO
+
+
+@contextlib.contextmanager
+def stdoutIO(stdout=None):
+    old = sys.stdout
+    if stdout is None:
+        stdout = StringIO()
+    sys.stdout = stdout
+    yield stdout
+    sys.stdout = old
 
 
 def test_exe():
@@ -47,6 +60,7 @@ if b == 3:
         print(e)
         assert True
 
+
 def test_syntax_error():
     the_code = """
 a=3
@@ -61,3 +75,28 @@ value = 6
     except Exception as e:
         print(e)
         assert True
+
+
+def test_output():
+    command1 = """
+a = 3
+print(a)
+b = a + 4
+print(b)"""
+
+    command2 = """
+a = 5
+if a > 4:
+    print(a+1)
+print(3)"""
+
+
+    with stdoutIO() as s1:
+        exec(command1)
+    
+    assert s1.getvalue() == "3\n7\n"
+    
+    with stdoutIO() as s2:
+        exec(command2)
+    
+    assert s2.getvalue() == "6\n3\n"
