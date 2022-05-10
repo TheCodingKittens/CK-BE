@@ -1,76 +1,18 @@
-import re
-from cgitb import reset
 from typing import Dict, List, Optional, Tuple
 
 import libcst as cst
 from app.models.command import Command
 from app.models.command_data import CommandData
+from app.services.nodetojson import CustomVisitor
 
-
-class TypingCollector(cst.CSTVisitor):
-    def __init__(self):
-        # stack for storing the canonical name of the current function
-        self.stack: List[Tuple[str, ...]] = []
-        # store the annotations
-        self.annotations: Dict[
-            Tuple[str, ...],  # key: tuple of canonical class/function name
-            Tuple[cst.Parameters, Optional[cst.Annotation]],  # value: (params, returns)
-        ] = {}
-
-    def visit_ClassDef(self, node: cst.ClassDef) -> Optional[bool]:
-        self.stack.append(node.name.value)
-
-    def leave_ClassDef(self, node: cst.ClassDef) -> None:
-        self.stack.pop()
-
-    def visit_FunctionDef(self, node: cst.FunctionDef) -> Optional[bool]:
-        self.stack.append(node.name.value)
-        self.annotations[tuple(self.stack)] = (node.params, node.returns)
-        return False  # pyi files don't support inner functions, return False to stop the traversal.
-
-    def leave_FunctionDef(self, node: cst.FunctionDef) -> None:
-        self.stack.pop()
-
-
-class TypingTransformer(cst.CSTTransformer):
-    def __init__(self, annotations):
-        # stack for storing the canonical name of the current function
-        self.stack: List[Tuple[str, ...]] = []
-        # store the annotations
-        self.annotations: Dict[
-            Tuple[str, ...],  # key: tuple of canonical class/function name
-            Tuple[cst.Parameters, Optional[cst.Annotation]],  # value: (params, returns)
-        ] = annotations
-
-    def visit_ClassDef(self, node: cst.ClassDef) -> Optional[bool]:
-        self.stack.append(node.name.value)
-
-    def leave_ClassDef(
-        self, original_node: cst.ClassDef, updated_node: cst.ClassDef
-    ) -> cst.CSTNode:
-        self.stack.pop()
-        return updated_node
-
-    def visit_FunctionDef(self, node: cst.FunctionDef) -> Optional[bool]:
-        self.stack.append(node.name.value)
-        return False  # pyi files don't support inner functions, return False to stop the traversal.
-
-    def leave_FunctionDef(
-        self, original_node: cst.FunctionDef, updated_node: cst.FunctionDef
-    ) -> cst.CSTNode:
-        key = tuple(self.stack)
-        self.stack.pop()
-        if key in self.annotations:
-            annotations = self.annotations[key]
-            return updated_node.with_changes(
-                params=annotations[0], returns=annotations[1]
-            )
-        return updated_node
-
-
+"""
+class to parse incoming strings from the frontend
+"""
 class Parser:
-    def parse_binaryoperation(self, node: cst.BinaryOperation) -> List[CommandData]:
+    def __init__(self):
+        self.visitor = CustomVisitor()
 
+    def parse_binaryoperation(self, node: cst.BinaryOperation) -> List[CommandData]:
         try:
             left = CommandData(
                 var_name=node.left.__class__.__name__,
@@ -89,16 +31,22 @@ class Parser:
         except cst.ParserSyntaxError as e:
             print("Error:", e)
 
-    def parse_expression(self, command: str) -> Command:
+    def parse_expression(self, command: str):
         try:
-            cst_parse = cst.parse_expression(command)
+            return cst.parse_expression(command)
 
-            command_data = self.parse_binaryoperation(cst_parse)
+        except cst.ParserSyntaxError as e:
+            print("Error:", e)
 
-            return Command(
-                command=command,
-                data=command_data,
-            )
+    def parse_module(self, module: str) -> List[Tuple[str, ...]]:
+        try:
+
+            self.visitor = CustomVisitor()
+
+            parsed_module = cst.parse_module(module)
+            parsed_module.visit(self.visitor)
+            
+            return self.visitor.stack
 
         except cst.ParserSyntaxError as e:
             print("Error:", e)
@@ -133,7 +81,6 @@ def tokenize(
 # source_tree = cst.parse_module(py_source)
 # stub_tree = cst.parse_module(pyi_source)
 
-# visitor = TypingCollector()
 # stub_tree.visit(visitor)
 # transformer = TypingTransformer(visitor.annotations)
 # modified_tree = source_tree.visit(transformer)

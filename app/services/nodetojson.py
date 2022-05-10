@@ -8,8 +8,6 @@ import libcst as cst
 """
 Class to visit all the nodes relevant for the project
 """
-
-
 class CustomVisitor(cst.CSTVisitor):
     def __init__(self):
         # store all the JSON content in a stack
@@ -43,16 +41,17 @@ class CustomVisitor(cst.CSTVisitor):
 
     def visit_Comparison(self, node: "Comparison") -> Optional[bool]:
         return self.visit_node(node)
-
+    
     def visit_BooleanOperation(self, node: "BooleanOperation") -> Optional[bool]:
         return self.visit_node(node)
-
+    
     def visit_BinaryOperation(self, node: "BinaryOperation") -> Optional[bool]:
         return self.visit_node(node)
 
     # TODO create an overall method that is called for every node type
     # def on_visit(self, node: cst.CSTNode) -> bool:
     #     self.visit_node(node)
+
 
 
 # This class defines a JSON converter, which is used to create JSON objects out of CSTNodes
@@ -123,7 +122,7 @@ class NodeToJSONConverter:
                 "id": str(uuid.uuid4()),
                 "type": "Assign",
                 "left": var_name,
-                "right": var_value,
+                "right": var_value
             }
 
             json_objects.append(data)
@@ -139,7 +138,12 @@ class NodeToJSONConverter:
         right = node.value.value
         type = node.operator.__class__.__name__
 
-        data = {"id": str(uuid.uuid4()), "type": type, "left": left, "right": right}
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": type,
+            "left": left,
+            "right": right
+        }
 
         json_objects.append(data)
         return json_objects
@@ -169,7 +173,7 @@ class NodeToJSONConverter:
             elseNode = {
                 "id": str(uuid.uuid4()),
                 "type": "If.else",  # no need to extract, always the same
-                "value": value_else,
+                "value": value_else
             }
 
         type_test = node.__class__.__name__ + "." + "test"
@@ -178,21 +182,21 @@ class NodeToJSONConverter:
         test = {
             "id": str(uuid.uuid4()),
             "type": type_test,  # no need to extract, always the same
-            "value": value_test,
+            "value": value_test
         }
         body = {
             "id": str(uuid.uuid4()),
             "type": type_body,  # no need to extract, always the same
-            "value": value_body,
+            "value": value_body
         }
 
         json_objects.append(test)
         json_objects.append(body)
         if elseNode is not None:
             json_objects.append(elseNode)
-
+        
         return json_objects
-
+    
     # --------------------------------- FOR -------------------------------
     # TODO
     def create_json_for(self, node):
@@ -243,37 +247,3 @@ class NodeToJSONConverter:
 
         json_objects.append(data)
         return json_objects
-
-
-# ----- LOOP EXAMPLE -----
-# py_source = """
-# for i in range(5):
-#     value = i
-# """
-
-py_source = """
-while a < 3:
-    b += 1
-"""
-
-# py_source = """
-# if a == 3:
-#     a = 1
-# else:
-#     a = 2"""
-
-# pyyy = """a += 1
-# b = 3"""
-
-demo = cst.parse_module(py_source)
-# demo = libcst.parse_module(pyyy)
-customVisitor = CustomVisitor()
-visited = demo.visit(customVisitor)
-
-print("\n", "--------------- CONTENT: ---------------")
-print(json.dumps(customVisitor.stack, indent=4, sort_keys=True))
-# json_data = json.dumps(customVisitor.content, indent=4)
-# print(json_data)
-# print(type(customVisitor.content[0]))
-
-# print(visited)
