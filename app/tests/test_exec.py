@@ -1,7 +1,8 @@
 import contextlib
-import pdb
+
 import sys
 from io import StringIO
+
 
 
 @contextlib.contextmanager
@@ -14,6 +15,33 @@ def stdoutIO(stdout=None):
     sys.stdout = old
 
 
+def exec_and_return(expression):
+    try:
+        exec(f"""locals()['temp'] = {expression}""")
+        return locals()["temp"]
+    except Exception as e:
+        return e
+
+
+def test_unassigned_variables():
+
+    the_code = """1 + 1"""
+
+    result = exec_and_return(the_code)
+
+    assert result == 2
+
+
+def test_unassigned_variables_syntax_error():
+
+    the_code = """1 y 1"""
+
+    try:
+        exec_and_return(the_code)
+    except Exception as e:
+        assert e == SyntaxError
+
+
 def test_exe():
 
     the_code = """
@@ -22,9 +50,12 @@ b = 2
 return_me = a + b
 """
 
+    # TODO research globals vs locals to ensure nothing fishy happens
     loc = {}
-    exec(the_code, globals(), loc)
-    return_workaround = loc["return_me"]
+    globalsParameter = {"__builtins__": None}
+    localsParameter = {}
+    exec(the_code, globalsParameter, localsParameter)
+    return_workaround = localsParameter["return_me"]
     print(return_workaround)  # 3
 
     assert return_workaround == 3
@@ -55,7 +86,7 @@ if b == 3:
     loc = {}
 
     try:
-        exec(the_code, globals(), loc)
+        exec_and_return(the_code)
     except Exception as e:
         print(e)
         assert True
@@ -71,13 +102,24 @@ value = 6
     loc = {}
 
     try:
-        exec(the_code, globals(), loc)
+        exec_and_return(the_code)
     except Exception as e:
         print(e)
-        assert True
+        assert e == SyntaxError
 
 
 def test_output():
+    command1 = """print(1 + 1)"""
+
+    with stdoutIO() as s1:
+        exec(command1)
+
+    value = s1.getvalue()
+
+    assert value == "2\n"
+
+
+def test__multiple_outputs():
     command1 = """
 a = 3
 print(a)
@@ -90,13 +132,12 @@ if a > 4:
     print(a+1)
 print(3)"""
 
-
     with stdoutIO() as s1:
         exec(command1)
-    
+
     assert s1.getvalue() == "3\n7\n"
-    
+
     with stdoutIO() as s2:
         exec(command2)
-    
+
     assert s2.getvalue() == "6\n3\n"

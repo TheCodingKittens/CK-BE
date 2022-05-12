@@ -1,5 +1,10 @@
+from app.models.base64 import Base64Type
 from app.services.nodetojson import NodeToJSONConverter
 from app.services.parser import Parser
+
+
+def create_bytecode(command: str) -> Base64Type:
+    return Base64Type(str.encode(command))
 
 
 def test_if(parser: Parser):
@@ -8,7 +13,9 @@ def test_if(parser: Parser):
 if a == 3:
     value = 6"""
 
-    parsed_command = parser.parse_module(command)
+    byte_code = create_bytecode(command)
+
+    parsed_command = parser.parse_module(byte_code)
 
     assert parsed_command[0]["type"] == "If.test"
     assert parsed_command[0]["command"] == "if a == 3:"
@@ -24,7 +31,9 @@ if a == 5:
 else:
     a = 2"""
 
-    parsed_command = parser.parse_module(command)
+    byte_code = create_bytecode(command)
+
+    parsed_command = parser.parse_module(byte_code)
 
     assert parsed_command[0]["type"] == "If.test"
     assert parsed_command[0]["command"] == "if a == 5:"
@@ -39,7 +48,9 @@ def test_while(parser: Parser):
 while a > 3:
     value = 6"""
 
-    parsed_command = parser.parse_module(command)
+    byte_code = create_bytecode(command)
+
+    parsed_command = parser.parse_module(byte_code)
 
     assert parsed_command[0]["type"] == "While.test"
     assert parsed_command[0]["command"] == "while a > 3:"
@@ -49,11 +60,14 @@ while a > 3:
 
 def test_assign(parser: Parser):
 
-    command1 = """a = 3"""
-    command2 = """a,b = 4,c"""
+    command_1 = """a = 3"""
+    command_2 = """a,b = 4,c"""
 
-    command1_parsed = parser.parse_module(command1)
-    command2_parsed = parser.parse_module(command2)
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
 
     assert command1_parsed[0]["type"] == "Assign"
     assert command1_parsed[0]["left"] == "a"
@@ -75,11 +89,14 @@ def test_assign(parser: Parser):
 
 def test_aug_assign(parser: Parser):
 
-    command1 = """a += 7"""
-    command2 = """b *= 2"""
+    command_1 = """a += 7"""
+    command_2 = """b *= 2"""
 
-    command1_parsed = parser.parse_module(command1)
-    command2_parsed = parser.parse_module(command2)
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
 
     assert command1_parsed[0]["type"] == "AddAssign"
     assert command1_parsed[0]["left"] == "a"
@@ -96,11 +113,14 @@ def test_aug_assign(parser: Parser):
 
 def test_assign_binary(parser: Parser):
 
-    command1 = """a = b + 1"""
-    command2 = """c %= t - 4"""
+    command_1 = """a = b + 1"""
+    command_2 = """c %= t - 4"""
 
-    command1_parsed = parser.parse_module(command1)
-    command2_parsed = parser.parse_module(command2)
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
 
     assert command1_parsed[0]["type"] == "Assign"
     assert command1_parsed[0]["left"] == "a"
@@ -115,13 +135,17 @@ def test_assign_binary(parser: Parser):
 
 def test_comparison(parser: Parser):
 
-    command1 = """a == 3"""
-    command2 = """b < 5"""
-    command3 = """c >= f"""
+    command_1 = """a == 3"""
+    command_2 = """b < 5"""
+    command_3 = """c >= f"""
 
-    command1_parsed = parser.parse_module(command1)
-    command2_parsed = parser.parse_module(command2)
-    command3_parsed = parser.parse_module(command3)
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
 
     assert command1_parsed[0]["type"] == "Comparison.Equal"
     assert command1_parsed[0]["left"] == "a"
@@ -144,11 +168,14 @@ def test_comparison(parser: Parser):
 
 def test_boolean_operation(parser: Parser):
 
-    command1 = "x and y"
-    command2 = "a or b"
+    command_1 = "x and y"
+    command_2 = "a or b"
 
-    command1_parsed = parser.parse_module(command1)
-    command2_parsed = parser.parse_module(command2)
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
 
     assert command1_parsed[0]["type"] == "And"
     assert command1_parsed[0]["left"] == "x"
@@ -165,15 +192,20 @@ def test_boolean_operation(parser: Parser):
 
 def test_binary_operation(parser: Parser):
 
-    command1 = "1 + 2"
-    command2 = "4 * b"
-    command3 = "c / d"
-    command4 = """a ** 2"""
+    command_1 = "1 + 2"
+    command_2 = "4 * b"
+    command_3 = "c / d"
+    command_4 = """a ** 2"""
 
-    command1_parsed = parser.parse_module(command1)
-    command2_parsed = parser.parse_module(command2)
-    command3_parsed = parser.parse_module(command3)
-    command4_parsed = parser.parse_module(command4)
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+    byte_command_4 = create_bytecode(command_4)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+    command4_parsed = parser.parse_module(byte_command_4)
 
     assert command1_parsed[0]["type"] == "Add"
     assert command1_parsed[0]["left"] == "1"
