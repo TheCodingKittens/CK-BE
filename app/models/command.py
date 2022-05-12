@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
+from app.models.base64 import Base64Type
 from app.models.command_data import CommandData
 from app.utils.config import settings
 from aredis_om.connections import get_redis_connection
@@ -9,7 +10,7 @@ from pydantic import BaseModel
 
 
 class UserInput(BaseModel):
-    command: str
+    command: Base64Type
 
 
 class CommandCreate(HashModel):

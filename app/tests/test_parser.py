@@ -1,3 +1,4 @@
+import base64
 from typing import List
 
 import libcst as cst
@@ -7,17 +8,14 @@ from app.services.parser import Parser
 
 def test_parse_module(parser: Parser):
 
-    user_input = "if 1 == 1: pass"
+    user_input = b"if 1 == 1: pass"
 
     module = cst.parse_module(user_input)
     # the parse_module function from libcst returns Module
     assert isinstance(module, cst.Module)
 
-    base64_command = Base64Type(user_input.encode())
+    base64_command = Base64Type(base64.b64encode(user_input))
 
     module = parser.parse_module(base64_command)
     # the parse_module function from our parser returns a list of JSON objects
     assert isinstance(module, List)
-
-
-

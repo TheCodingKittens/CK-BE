@@ -1,10 +1,11 @@
+from distutils.util import execute
 from typing import List
 
 import libcst as cst
 from app import crud
 from app.models.command import Command, CommandRead, UserInput
+from app.services.executor import Executor
 from app.services.parser import Parser
-from app.utils.deps import create_parser, create_vistor
 from aredis_om.model import HashModel, NotFoundError
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_cache.decorator import cache
@@ -13,14 +14,14 @@ from starlette.responses import Response
 
 router = APIRouter()
 
-
 @router.post("", response_model=CommandRead)
 async def save_command(
-    userinput: UserInput, parser: Parser = Depends(Parser)
+    userinput: UserInput, parser: Parser = Depends(Parser), executor: Executor = Depends(Executor)
 ) -> CommandRead:
     # We can save the model to Redis by calling `save()`:
 
-    parsed_expression = parser.parse_expression(userinput.command)
+    executed_command = executor.exec_command(userinput.command)
+    parsed_expression = parser.parse_module(userinput.command)
     return await crud.command.create(obj_in=parsed_expression)
 
     # Save the Command and return the newly saved command

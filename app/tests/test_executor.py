@@ -5,7 +5,7 @@ from app.services.executor import Executor
 
 
 def test_simple_expression(executor: Executor):
-    command = Base64Type(b"1 + 1 + 1")
+    command = Base64Type(base64.b64encode(b"1 + 1 + 1"))
 
     result = executor.exec_expression(command)
 
@@ -13,7 +13,7 @@ def test_simple_expression(executor: Executor):
 
 
 def test_simple_expression_with_error(executor: Executor):
-    command = Base64Type(b"1 +")
+    command = Base64Type(base64.b64encode(b"1 +"))
 
     result = executor.exec_expression(command)
 
@@ -22,7 +22,8 @@ def test_simple_expression_with_error(executor: Executor):
 
 def test_complex_expression(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
@@ -31,6 +32,7 @@ a = 5
 if a > 4:
     print(a+1)
 print(3)"""
+        )
     )
 
     result = executor.exec_expression(command)
@@ -40,10 +42,12 @@ print(3)"""
 
 def test_complex_expression_with_error(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 1
 b = 2
 return_me = a + b"""
+        )
     )
 
     result = executor.exec_expression(command)
@@ -53,11 +57,13 @@ return_me = a + b"""
 
 def test_simple_stdout(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
 print(b)"""
+        )
     )
 
     result = executor.exec_stdout(command)
@@ -67,7 +73,8 @@ print(b)"""
 
 def test_complex_stdout(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
@@ -76,6 +83,7 @@ a = 5
 if a > 4:
     print(a+1)
 print(3)"""
+        )
     )
 
     result = executor.exec_stdout(command)
@@ -85,11 +93,13 @@ print(3)"""
 
 def test_simple_module(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
 print(b)"""
+        )
     )
 
     result = executor.exec_module(command)
@@ -99,7 +109,8 @@ print(b)"""
 
 def test_complex_module(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
@@ -108,6 +119,7 @@ a = 5
 if a > 4:
     print(a+1)
 print(3)"""
+        )
     )
 
     result = executor.exec_module(command)
@@ -117,7 +129,8 @@ print(3)"""
 
 def test_complex_module_with_error(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
@@ -126,6 +139,7 @@ a = 5
 if a > 4:
 print(a+1)
 print(3)"""
+        )
     )
 
     result = executor.exec_module(command)
@@ -135,7 +149,8 @@ print(3)"""
 
 def test_command(executor: Executor):
     command = Base64Type(
-        b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
@@ -144,6 +159,7 @@ a = 5
 if a > 4:
     print(a+1)
 print(3)"""
+        )
     )
 
     result = executor.exec_command(command)
@@ -152,7 +168,7 @@ print(3)"""
 
 
 def test_command_with_error(executor: Executor):
-    command = Base64Type(b"1 y")
+    command = Base64Type(base64.b64encode(b"1 y"))
 
     result = executor.exec_command(command)
 
@@ -162,7 +178,7 @@ def test_command_with_error(executor: Executor):
 def test_command_with_complex_syntax_error(executor: Executor):
 
     command = Base64Type(
-        b"""
+        base64.b64encode(b"""
 a = 3
 print(a)
 b = a + 4
@@ -171,7 +187,7 @@ a = 5
 if a > 4:
 print(a+1)
 print(3)"""
-    )
+    ))
 
     result = executor.exec_command(command)
 

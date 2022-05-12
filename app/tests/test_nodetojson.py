@@ -1,10 +1,12 @@
+import base64
+
 from app.models.base64 import Base64Type
 from app.services.nodetojson import NodeToJSONConverter
 from app.services.parser import Parser
 
 
 def create_bytecode(command: str) -> Base64Type:
-    return Base64Type(str.encode(command))
+    return Base64Type(base64.b64encode(str.encode(command)))
 
 
 def test_if(parser: Parser):
