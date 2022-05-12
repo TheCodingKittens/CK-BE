@@ -244,7 +244,7 @@ print(1 + 3)
 
 
 def test_pass_chain(executor: Executor):
-    command_1 = b"""1 + 1"""
+    command_1 = b"""b = 2"""
     command_2 = b"""2 + 2"""
     command_3 = b"""a = 3
 print(a)
