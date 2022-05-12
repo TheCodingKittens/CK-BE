@@ -5,11 +5,11 @@ from app.services.executor import Executor
 
 
 def test_simple_expression(executor: Executor):
-    command = Base64Type(base64.b64encode(b"1 + 1 + 1"))
+    command = Base64Type(base64.b64encode(b"1 + 1"))
 
-    result = executor.exec_expression(command)
+    output = executor.exec_expression(command)
 
-    assert result == 3
+    assert result == 2
 
 
 def test_simple_expression_with_error(executor: Executor):
@@ -178,7 +178,8 @@ def test_command_with_error(executor: Executor):
 def test_command_with_complex_syntax_error(executor: Executor):
 
     command = Base64Type(
-        base64.b64encode(b"""
+        base64.b64encode(
+            b"""
 a = 3
 print(a)
 b = a + 4
@@ -187,8 +188,74 @@ a = 5
 if a > 4:
 print(a+1)
 print(3)"""
-    ))
+        )
+    )
 
     result = executor.exec_command(command)
 
     assert isinstance(result, SyntaxError)
+
+
+def test_dupicate_variable(executor: Executor):
+    command = Base64Type(
+        base64.b64encode(
+            b"""
+1 + 1
+print(1 + 1)
+a = 2
+    """
+        )
+    )
+
+    result = executor.exec_command(command)
+
+    assert result == {"a": 2, "stdout": "2\n"}
+
+
+def test_dupicate_variable(executor: Executor):
+    command = Base64Type(
+        base64.b64encode(
+            b"""
+1 + 1
+    """
+        )
+    )
+
+    result = executor.exec_expression(command)
+
+    assert result == 2
+
+
+def test_multiple_commands(executor: Executor):
+    command1 = b"""1 + 1"""
+    command2 = b"""2 + 2"""
+    command3 = b"""a = 3
+print(a)
+print(1 + 3)
+2+2"""
+
+    result_1 = executor.exec_command(Base64Type(base64.b64encode(command1)))
+    result_2 = executor.exec_command(Base64Type(base64.b64encode(command2)))
+    result_3 = executor.exec_command(Base64Type(base64.b64encode(command3)))
+
+    assert result_1 == 2
+    assert result_2 == 4
+    assert result_3 == {"a": 3, "stdout": "3\n4\n"}
+
+
+def test_pass_chain(executor: Executor):
+    command_1 = b"""1 + 1"""
+    command_2 = b"""2 + 2"""
+    command_3 = b"""a = 3
+print(a)
+print(1 + 3)
+2+2"""
+
+    history = []
+    history.append(Base64Type(base64.b64encode(command_1)))
+    history.append(Base64Type(base64.b64encode(command_2)))
+    history.append(Base64Type(base64.b64encode(command_3)))
+
+    result = executor.exec_command_history(history)
+
+    assert result == {"a": 3, "stdout": "3\n4\n"}
