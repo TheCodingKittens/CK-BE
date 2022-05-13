@@ -48,6 +48,10 @@ class CustomVisitor(cst.CSTVisitor):
     def visit_BinaryOperation(self, node: "BinaryOperation") -> Optional[bool]:
         return self.visit_node(node)
 
+    def visit_Call(self, node: "Call") -> Optional[bool]:
+        return self.visit_node(node)
+
+
     # TODO create an overall method that is called for every node type
     # def on_visit(self, node: cst.CSTNode) -> bool:
     #     self.visit_node(node)
@@ -83,6 +87,8 @@ class NodeToJSONConverter:
             json_objects = self.create_json_boolean_binary_operation(node)
         elif classname == "For":
             json_objects = self.create_json_for(node)
+        elif classname == "Call":
+            json_objects = self.create_json_call(node)
         else:
             print("ERROR: Unknown node type")
 
@@ -250,7 +256,13 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        left = node.left.value
+        if node.left.__class__.__name__ == "BinaryOperation":
+            customVisitor = CustomVisitor()
+            node.left.visit(customVisitor)
+            left = customVisitor.stack[0]["command"]
+        else:
+            left = node.left.value
+
         right = node.right.value
         type = node.operator.__class__.__name__
         type_text = node.operator._get_token()
@@ -261,6 +273,34 @@ class NodeToJSONConverter:
             "left": left,
             "right": right,
             "command": left+" "+type_text+" "+right
+        }
+
+        json_objects.append(data)
+        return json_objects
+
+    # -------------------------------------- CALL --------------------------------
+    def create_json_call(self, node):
+
+        json_objects = []
+
+        type = node.func.value
+        paramType = node.args[0].value.__class__.__name__
+        if (
+            paramType == "BinaryOperation"
+            or paramType == "BooleanOperation"
+            or paramType == "Comparison"
+        ):
+            customVisitor = CustomVisitor()
+            node.args[0].value.visit(customVisitor)
+            value = customVisitor.stack[0]["command"]
+        else:
+            value = node.args[0].value.value
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": type,
+            "value": value,
+            "command": type + "(" + value + ")",
         }
 
         json_objects.append(data)
