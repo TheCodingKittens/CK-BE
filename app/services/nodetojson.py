@@ -112,9 +112,7 @@ class NodeToJSONConverter:
 
                 data = {
                     "id": str(uuid.uuid4()),
-                    "type": "Assign",
-                    "left": var_name,
-                    "right": var_value,
+                    "type": "Line",
                     "command": var_name+" = "+var_value
                 }
 
@@ -133,9 +131,7 @@ class NodeToJSONConverter:
 
             data = {
                 "id": str(uuid.uuid4()),
-                "type": "Assign",
-                "left": var_name,
-                "right": var_value,
+                "type": "Line",
                 "command": var_name+" = "+var_value
             }
 
@@ -160,9 +156,7 @@ class NodeToJSONConverter:
 
         data = {
             "id": str(uuid.uuid4()),
-            "type": type,
-            "left": left,
-            "right": right,
+            "type": "Line",
             "command": left+" "+type_text+" "+right
         }
 
@@ -194,7 +188,7 @@ class NodeToJSONConverter:
             elseNode = {
                 "id": str(uuid.uuid4()),
                 "type": "If.else",  # no need to extract, always the same
-                "value": value_else
+                "value": value_else   # NESTED
             }
 
         type_test = node.__class__.__name__ + "." + "test"
@@ -203,13 +197,12 @@ class NodeToJSONConverter:
         test = {
             "id": str(uuid.uuid4()),
             "type": type_test,  # no need to extract, always the same
-            "value": value_test,
             "command": node.__class__.__name__.lower()+" "+value_test+":"
         }
         body = {
             "id": str(uuid.uuid4()),
             "type": type_body,  # no need to extract, always the same
-            "value": value_body
+            "value": value_body   # NESTED
         }
 
         json_objects.append(test)
@@ -242,9 +235,7 @@ class NodeToJSONConverter:
 
         data = {
             "id": str(uuid.uuid4()),
-            "type": comparison_type,
-            "left": name,
-            "right": comparator,
+            "type": "Line",
             "command": name+" "+type_text+" "+comparator
         }
 
@@ -269,9 +260,7 @@ class NodeToJSONConverter:
 
         data = {
             "id": str(uuid.uuid4()),
-            "type": type,
-            "left": left,
-            "right": right,
+            "type": "Line",
             "command": left+" "+type_text+" "+right
         }
 
@@ -298,8 +287,7 @@ class NodeToJSONConverter:
 
         data = {
             "id": str(uuid.uuid4()),
-            "type": type,
-            "value": value,
+            "type": "Line",
             "command": type + "(" + value + ")",
         }
 
