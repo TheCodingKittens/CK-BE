@@ -188,7 +188,8 @@ class NodeToJSONConverter:
             elseNode = {
                 "id": str(uuid.uuid4()),
                 "type": "If.else",  # no need to extract, always the same
-                "value": value_else   # NESTED
+                "value": value_else,   # NESTED
+                "command": "else:"
             }
 
         type_test = node.__class__.__name__ + "." + "test"
