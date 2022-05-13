@@ -19,7 +19,7 @@ print(1 + 3)
     commands.append(Base64Type(base64.b64encode(command2)))
     commands.append(Base64Type(base64.b64encode(command3)))
 
-    # actually execute the notebook
+    # actually execute the notebook with all the given commands as cells
     outputs = jupyterexecutor.run_notebook(commands)
 
     assert len(outputs) == 3
@@ -77,3 +77,54 @@ else:
     assert outputs[1] == "5"
     assert outputs[2] == "3"
     assert outputs[3] == "b is 4\n"
+
+
+# Would be used in case of a new command entry (since all cells before already know their output)
+def test_jupyter_last_cell_output(jupyterexecutor: ExecutorJuypter):
+
+    history = []
+
+    history.append(Base64Type(base64.b64encode(b"a = 2")))
+    history.append(Base64Type(base64.b64encode(b"a")))
+    history.append(Base64Type(base64.b64encode(b"1 + 4")))
+    history.append(Base64Type(base64.b64encode(b"a = 3")))
+    history.append(Base64Type(base64.b64encode(b"a")))
+
+    new_command = (Base64Type(base64.b64encode(b"""if a == 3:
+    print("a is 3")
+print("Done")""")))
+
+    history.append(new_command)
+
+    nb = jupyterexecutor.create_notebook_from_history(history)
+    last_cell_output = jupyterexecutor.get_output_of_last_cell(nb)
+
+    assert last_cell_output == "a is 3\nDone\n"
+
+
+# Would be used in case of a change, to override all the CommandWrapper outputs
+def test_jupyter_cell_output_individually(jupyterexecutor: ExecutorJuypter):
+
+    history = []
+
+    history.append(Base64Type(base64.b64encode(b"a = 2")))
+    history.append(Base64Type(base64.b64encode(b"a")))
+    history.append(Base64Type(base64.b64encode(b"1 + 4")))
+    history.append(Base64Type(base64.b64encode(b"b = 1")))
+    history.append(Base64Type(base64.b64encode(b"""if a == 3:
+    print("IF")
+else:
+    print("ELSE")""")))
+    history.append(Base64Type(base64.b64encode(b"3 + 5 + b")))
+
+    nb = jupyterexecutor.create_notebook_from_history(history)
+    all_cells_output = jupyterexecutor.get_output_of_each_cell(nb)
+
+    # one output for every cell (even if empty) = num of cells
+    assert len(all_cells_output) == 6
+    assert all_cells_output[0] == ""
+    assert all_cells_output[1] == "2"
+    assert all_cells_output[2] == "5"
+    assert all_cells_output[3] == ""
+    assert all_cells_output[4] == "ELSE\n"
+    assert all_cells_output[5] == "9"

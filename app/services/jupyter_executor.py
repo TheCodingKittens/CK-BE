@@ -8,7 +8,7 @@ from nbconvert.preprocessors import ExecutePreprocessor
 class ExecutorJuypter():
     def __init__(self):
         # create an ExecutePreprocessor
-        self.ep = ExecutePreprocessor(timeout=300, kernel_name="python3")
+        self.ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
         # create notebook
         self.nb_in = nbf.v4.new_notebook()
         self.cells = self.nb_in['cells']
@@ -23,7 +23,6 @@ class ExecutorJuypter():
     
 
     # method to create a new cell and run the notebook again
-    # MAY BE USED FOR NEW ENTRIES
     def run_new_command(self, command: Base64Type):
         self.create_cell(command)
         self.nb_out = self.pre_process()
@@ -31,7 +30,6 @@ class ExecutorJuypter():
 
 
     # method to create a new notebook and run everything
-    # MAY BE USED INITIALLY AND FOR CHANGES IN THE HISTORY
     def run_notebook(self, commands: List[Base64Type]):
 
         # create new notebook
@@ -58,4 +56,49 @@ class ExecutorJuypter():
         return outputs
 
 
+    # ------------ CREATE A NOTEBOOK FROM A HISTORY OF COMMANDS -------------
+    def create_notebook_from_history(self, commands: List[Base64Type]):
+        nb_in = nbf.v4.new_notebook()
+        for command in commands:
+            cell = nbf.v4.new_code_cell(command.decode_str())
+            nb_in['cells'].append(cell)
+        
+        return nb_in
 
+
+    # -------------------- MAY BE USED FOR NEW COMMANDS ---------------------
+    def get_output_of_last_cell(self, notebook):
+        # execute the notebook
+        nb_out = self.ep.preprocess(notebook)
+
+        # access the last cell
+        last_cell = nb_out[0]["cells"][-1]
+
+        # return the output (if available)
+        if not last_cell["outputs"]:
+            return ""
+        elif last_cell["outputs"][0]["output_type"] == "stream":
+            return last_cell["outputs"][0]["text"]
+        elif last_cell["outputs"][0]["output_type"] == "execute_result":
+            return last_cell["outputs"][0]["data"]["text/plain"]
+
+
+    # -------------------- MAY BE USED FOR EDITING NODES ---------------------
+    def get_output_of_each_cell(self, notebook):
+        # execute the notebook
+        nb_out = self.ep.preprocess(notebook)
+
+        # create a list containing an entry for EVERY cell
+        all_outputs = []
+
+        # add an output for every cell (even if empty)
+        for cell in nb_out[0]["cells"]:
+            if not cell["outputs"]:
+                all_outputs.append("")
+                continue
+            if cell["outputs"][0]["output_type"] == "stream":
+                all_outputs.append(cell["outputs"][0]["text"])
+            elif cell["outputs"][0]["output_type"] == "execute_result":
+                all_outputs.append(cell["outputs"][0]["data"]["text/plain"])
+        
+        return all_outputs
