@@ -1,20 +1,30 @@
+from dash import Dash, html
+import dash_cytoscape as cyto
+
+
 class EdgeCreator:
 
-    def __init__(self, json_tree):
+    def __init__(self, json_tree, user_friendly_mode=False):
         self.json_tree = json_tree
+        self.user_friendly_mode = user_friendly_mode
+
+        self.all_nodes = []
         self.edges = []
-        self.indentation_levels = {}
-        self.valid_node_types = ["If", "While", "If.test", "If.body", "If.else", "While.test", "While.body", "Assign"]
-        self.irrelevant_nodes = ["If.body", "While.body"]
-        self.command_number = 0
         self.connections = {}
+        self.indentation_levels = {}
+        self.valid_node_types = ["If.test", "If.body", "If.else", "While.test", "While.body", "Assign"]
+        self.irrelevant_nodes = ["If.body", "While.body"]
+
+        self.command_number = 0
         self.create_edges()
 
     def create_indentation_levels(self, json_object, indentation_level):
+
         json_object_type = json_object['type']
         json_object_id = json_object['id']
         if 'command' in json_object:
             json_object_command = json_object['command']
+            self.all_nodes.append(json_object)
         else:
             json_object_command = None
 
@@ -38,6 +48,9 @@ class EdgeCreator:
                     self.create_indentation_levels(value, indentation_level + 1)
 
     def find_next_connection(self, json_object):
+        # FIXME: If.test should connect to two nodes: the If.body as well as the node directly after it on \n
+        #  its indentation level (in case the test fails). Same goes for While.test and For.test
+
         start_command_number = -1
         next_json_object = None
         previous_json_object = None
@@ -95,6 +108,11 @@ class EdgeCreator:
             for value in json_object['value']:
                 self.create_connection(value)
 
+    def get_node_with_id(self, json_object_id):
+        for node in self.all_nodes:
+            if node['id'] == json_object_id:
+                return node
+
     def create_edges(self):
         for element in self.json_tree:
             self.create_indentation_levels(element, 0)
@@ -103,4 +121,45 @@ class EdgeCreator:
             self.create_connection(json_object)
 
         for key, value in self.connections.items():
-            self.edges.append((key, value))
+            source_node = self.get_node_with_id(key)
+            target_node = self.get_node_with_id(value)
+            self.edges.append((source_node, target_node))
+
+    def visualise_edges(self):
+        app = Dash(__name__)
+
+        elements = []
+
+        for node in self.all_nodes:
+            if 'command' in node:
+                label = node['command']
+
+            item = {
+                'data': {
+                    'id': node['id'],
+                    'label': label
+                }
+            }
+            elements.append(item)
+
+        for source_node, target_node in self.edges:
+            if target_node:
+                item = {
+                    'data': {
+                        'source': source_node['id'],
+                        'target': target_node['id']
+                    }
+                }
+                elements.append(item)
+
+        app.layout = html.Div([
+            html.P("CodingKittens Edges:"),
+            cyto.Cytoscape(
+                id='cytoscape',
+                elements=elements,
+                layout={'name': 'grid'},
+                style={'width': '1000px', 'height': '1000px'}
+            )
+        ])
+
+        app.run_server(debug=True)
