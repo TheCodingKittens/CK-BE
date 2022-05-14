@@ -1,3 +1,4 @@
+from platform import node
 from typing import List
 
 # CRUD operations for the Command model
@@ -9,7 +10,7 @@ from app.models.command import Command, CommandRead, UserInput
 # Services
 from app.services.edgecreator import EdgeCreator
 from app.services.executor import Executor
-from app.services.jupyter_executor import JupyterExecutor
+from app.services.jupyter_executor import ExecutorJuypter
 
 # Fastapi Dependencies
 from app.services.parser import Parser
@@ -47,28 +48,38 @@ async def save_command(
 ) -> CommandRead:
 
     # 2. Execute the command
-    executed_command = executor.exec_command(userinput.command)
+    executed_variables = executor.exec_module(userinput.command)
 
     # 3.	Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables.
     try:
-        executed_history = executor.exec_module_from_history(executed_command)
+        executed__variables_history = executor.exec_module_from_history(
+            executed_variables
+        )
     except Exception as e:
         return {"error": str(e)}
 
     # 5. Fetch all of the command attributes of all the CommandWrapper objects of the session (as a history basically) -> needed for 6
-    parsed_expression = parser.parse_module(userinput.command)
+    # TODO ensure the nodes are being returned correctly
+    nodes = parser.parse_module(userinput.command)
 
     # 6. Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
     jupyter_executed_command = jupyter_executor.exec_command(userinput.command)
 
-    # 7. Save the output to the new CommandWrapper
-
     # 8. Parse the input using the parse_module function and retrieve the nodes and edges.
-    edges = edge_creator.create_edges(parsed_expression)
+    # TODO change create_edges to accept nodes
+    edges = edge_creator.create_edges(nodes)
+
+    command = Command(
+        command=userinput.command,
+        variables=executed__variables_history,
+        edges=edges,
+        output=jupyter_executed_command,
+        nodes=nodes,
+    )
 
     # 4, 7, 9 Can be one step because we need to only create one "CommandWrapper" object
     # TODO modify the command wrapper to be able to save the command and the variables
-    return await crud.command.create(obj_in=parsed_expression)
+    return await crud.command.create(obj_in=command)
 
     # 10, 11
     # This is the history endpoint, it will return all the "CommandWrappers"

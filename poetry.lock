@@ -324,6 +324,17 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "dash-cytoscape"
+version = "0.3.0"
+description = "A Component Library for Dash aimed at facilitating network visualization in Python, wrapped around Cytoscape.js"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+dash = "*"
+
+[[package]]
 name = "dash-html-components"
 version = "2.0.0"
 description = "Vanilla HTML components for Dash"
@@ -1637,7 +1648,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0b81b1461e1049840fde897ba29f70e85f8fc8155fba0b9e8d764e9a8a644ffc"
+content-hash = "2b280f7df52515aa56e61083561ef2b1d826b93f1961d398a7c3b839572cda2a"
 
 [metadata.files]
 aioredis = [
@@ -1930,6 +1941,10 @@ dash = [
 dash-core-components = [
     {file = "dash_core_components-2.0.0-py3-none-any.whl", hash = "sha256:52b8e8cce13b18d0802ee3acbc5e888cb1248a04968f962d63d070400af2e346"},
     {file = "dash_core_components-2.0.0.tar.gz", hash = "sha256:c6733874af975e552f95a1398a16c2ee7df14ce43fa60bb3718a3c6e0b63ffee"},
+]
+dash-cytoscape = [
+    {file = "dash_cytoscape-0.3.0-py3-none-any.whl", hash = "sha256:718dc1568b9e7bfe7f64376aa903c64a1a1fe6daed4e559b254456f18dd3135f"},
+    {file = "dash_cytoscape-0.3.0.tar.gz", hash = "sha256:a71ad4fe095570b71d4ad7c0d29199e9780c2e6796173d3b25fccc2cc58c855f"},
 ]
 dash-html-components = [
     {file = "dash_html_components-2.0.0-py3-none-any.whl", hash = "sha256:b42cc903713c9706af03b3f2548bda4be7307a7cf89b7d6eae3da872717d1b63"},

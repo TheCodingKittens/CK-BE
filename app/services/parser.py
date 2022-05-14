@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 import libcst as cst
 from app.models.base64 import Base64Type
 from app.models.command import Command
-from app.models.command_data import CommandData
+from app.models.variable import Variable
 from app.services.nodetojson import CustomVisitor
 
 """
@@ -15,14 +15,14 @@ class Parser:
     def __init__(self):
         self.visitor = CustomVisitor()
 
-    def parse_binaryoperation(self, node: cst.BinaryOperation) -> List[CommandData]:
+    def parse_binaryoperation(self, node: cst.BinaryOperation) -> List[Variable]:
         try:
-            left = CommandData(
+            left = Variable(
                 var_name=node.left.__class__.__name__,
                 value=node.left.value,
                 type=node.operator.__class__.__name__,
             )
-            right = CommandData(
+            right = Variable(
                 var_name=node.right.__class__.__name__,
                 value=node.right.value,
                 type=node.operator.__class__.__name__,

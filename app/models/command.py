@@ -3,8 +3,8 @@ from typing import List, Optional
 from uuid import uuid4
 
 from app.models.base64 import Base64Type
-from app.models.command_data import CommandData
 from app.models.edge import Edge
+from app.models.variable import Variable
 from app.utils.config import settings
 from aredis_om.connections import get_redis_connection
 from aredis_om.model import Field, HashModel, NotFoundError
@@ -49,9 +49,11 @@ class Command(BaseModel):
         title="Created At", default_factory=datetime.utcnow, index=True
     )
     token: str = Field(title="Token")
-    data: List[CommandData] = Field(title="The Data of the Command", index=True)
+    variables: List[Variable] = Field(title="The Data of the Command", index=True)
     output: Optional[str] = Field(title="The Output of the Command")
     edges: Optional[Edge] = Field(title="The Edges of the Command")
+    # TODO create a node Object
+    nodes: Optional[str] = Field(title="The Nodes of the Command")
 
 
 class CommandRead(Command):

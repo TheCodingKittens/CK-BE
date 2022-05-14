@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from app.crud.base import CRUDBase
-from app.models.command_data import CommandDataCreate
+from app.models.variable import CommandDataCreate
 from app.models.edge import Edge, EdgeCreate
 from aredis_om.model import HashModel, NotFoundError
 from fastapi import HTTPException

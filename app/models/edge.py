@@ -1,10 +1,8 @@
-from datetime import datetime
 from typing import List, Optional
 
-from app.models.command_data import CommandData
 from app.utils.config import settings
 from aredis_om.connections import get_redis_connection
-from aredis_om.model import Field, HashModel, NotFoundError
+from aredis_om.model import Field, HashModel
 from pydantic import BaseModel
 
 

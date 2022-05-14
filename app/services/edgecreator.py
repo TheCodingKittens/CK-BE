@@ -1,5 +1,5 @@
 import dash_cytoscape as cyto
-from app.models.edge import Set
+from app.models.edge import Edge
 from dash import Dash, html
 
 
