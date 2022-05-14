@@ -22,6 +22,7 @@ from pydantic import BaseModel
 
 class UserInput(BaseModel):
     command: Base64Type
+    token: str = Field(title="The token of the user")
 
 
 class CommandCreate(HashModel):
@@ -51,7 +52,6 @@ class Command(BaseModel):
     data: List[CommandData] = Field(title="The Data of the Command", index=True)
     output: Optional[str] = Field(title="The Output of the Command")
     edges: Optional[Edge] = Field(title="The Edges of the Command")
-    
 
 
 class CommandRead(Command):
