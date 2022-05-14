@@ -8,9 +8,9 @@ from aredis_om.model import Field, HashModel, NotFoundError
 from pydantic import BaseModel
 
 
-class SetCreate(HashModel):
-    source: str = Field(title="The Source of the Set", index=True)
-    target: str = Field(title="The Target of the Set", index=True)
+class EdgeCreate(HashModel):
+    source_node: str = Field(title="The Source of the Set", index=True)
+    target_node: str = Field(title="The Target of the Set", index=True)
 
     class Meta:
         database = get_redis_connection(
@@ -18,7 +18,7 @@ class SetCreate(HashModel):
         )
 
 
-class Set(BaseModel):
-    pk: Optional[str] = Field(title="The Primary Key of The Set", index=True)
-    source: str = Field(title="The Source of the Set", index=True)
-    target: str = Field(title="The Target of the Set", index=True)
+class Edge(BaseModel):
+    pk: Optional[str] = Field(title="The Primary Key of The Edge", index=True)
+    source_node: str = Field(title="The Source of the Set", index=True)
+    target_node: str = Field(title="The Target of the Set", index=True)

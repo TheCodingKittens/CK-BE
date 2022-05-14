@@ -2,24 +2,24 @@ from typing import List, Optional
 
 from app.crud.base import CRUDBase
 from app.models.command_data import CommandDataCreate
-from app.models.set import Set, SetCreate
+from app.models.edge import Edge, EdgeCreate
 from aredis_om.model import HashModel, NotFoundError
 from fastapi import HTTPException
 
 
-class CRUDSet(CRUDBase[SetCreate, SetCreate, Set]):
-    async def create(obj_in: SetCreate) -> Set:
+class CRUDEdge(CRUDBase[EdgeCreate, EdgeCreate, Edge]):
+    async def create(obj_in: EdgeCreate) -> Edge:
         return await obj_in.save()
 
-    async def read_all() -> List[Set]:
-        all_pks = [pk async for pk in await SetCreate.all_pks()]
+    async def read_all() -> List[Edge]:
+        all_pks = [pk async for pk in await EdgeCreate.all_pks()]
 
         all_models = []
         for pk in all_pks:
             try:
-                set_db = await SetCreate.get(pk)
+                Edge_db = await EdgeCreate.get(pk)
                 all_models.append(
-                    Set(**set_db.dict())
+                    Edge(**Edge_db.dict())
                 )
 
             except NotFoundError:
@@ -27,11 +27,11 @@ class CRUDSet(CRUDBase[SetCreate, SetCreate, Set]):
 
         return all_models
 
-    async def update(pk, obj_in: SetCreate
-    ) -> Optional[SetCreate]:
+    async def update(pk, obj_in: EdgeCreate
+    ) -> Optional[EdgeCreate]:
         try:
 
-            existing_model = await SetCreate.find(SetCreate.source == pk | SetCreate.pk == pk)
+            existing_model = await EdgeCreate.find(EdgeCreate.source == pk | EdgeCreate.pk == pk)
 
             if existing_model:
                 await existing_model(**obj_in.dict())
