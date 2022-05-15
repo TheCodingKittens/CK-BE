@@ -3,15 +3,12 @@ from typing import List
 
 # CRUD operations for the Command model
 from app import crud
-
 # Models
 from app.models.command import Command, CommandRead, UserInput
-
 # Services
 from app.services.edgecreator import EdgeCreator
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
-
 # Fastapi Dependencies
 from app.services.parser import Parser
 from aredis_om.model import NotFoundError
@@ -43,37 +40,40 @@ async def save_command(
     userinput: UserInput,
     parser: Parser = Depends(Parser),
     executor: Executor = Depends(Executor),
-    jupyter_executor: Executor = Depends(Executor),
+    jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
     edge_creator: EdgeCreator = Depends(EdgeCreator),
 ) -> CommandRead:
 
-    # 2. Execute the command
-    executed_variables = executor.exec_module(userinput.command)
+    # 2. get the current state of the variables
+    # TODO from the LAST CommandWrapper of the current session, FETCH the variables property
+    # latest_variables = ...some db call...
 
-    # 3.	Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables.
+    # 3. Execute the command (Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables)
     try:
-        executed__variables_history = executor.exec_module_from_history(
-            executed_variables
+        new_variables = executor.exec_module_from_history(
+            latest_variables
         )
     except Exception as e:
         return {"error": str(e)}
 
-    # 5. Fetch all of the command attributes of all the CommandWrapper objects of the session (as a history basically) -> needed for 6
-    # TODO ensure the nodes are being returned correctly
-    nodes = parser.parse_module(userinput.command)
+    # 5. Fetch all of the "command" attributes of all the CommandWrapper objects of the session (as a history basically) -> needed for 6
+    # TODO from ALL CommandWrapper of the current session, fetch the "COMMAND" properties to create a list of strings containing all previous commands
+    # history_of_prev_commands = ...some db call...
 
     # 6. Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
-    jupyter_executed_command = jupyter_executor.exec_command(userinput.command)
+    command_output = jupyter_executor.run_notebook_given_history_and_new_command(history_of_prev_commands, userinput.command)
 
     # 8. Parse the input using the parse_module function and retrieve the nodes and edges.
+    # TODO ensure the nodes are being returned correctly
     # TODO change create_edges to accept nodes
+    nodes = parser.parse_module(userinput.command)
     edges = edge_creator.create_edges(nodes)
 
     command = Command(
         command=userinput.command,
-        variables=executed__variables_history,
+        variables=new_variables,
         edges=edges,
-        output=jupyter_executed_command,
+        output=command_output,
         nodes=nodes,
     )
 

@@ -94,10 +94,7 @@ def test_jupyter_last_cell_output(jupyterexecutor: ExecutorJuypter):
     print("a is 3")
 print("Done")""")))
 
-    history.append(new_command)
-
-    nb = jupyterexecutor.create_notebook_from_history(history)
-    last_cell_output = jupyterexecutor.get_output_of_last_cell(nb)
+    last_cell_output = jupyterexecutor.run_notebook_given_history_and_new_command(history, new_command)
 
     assert last_cell_output == "a is 3\nDone\n"
 

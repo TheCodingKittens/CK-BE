@@ -66,6 +66,22 @@ class ExecutorJuypter():
         return nb_in
 
 
+    # ----- RUN NOTEBOOK FROM HISTORY AND NEW COMMAND. RETURNS OUTPUT OF NEW COMMAND -----
+    def run_notebook_given_history_and_new_command(self, commandHistory: List[Base64Type], newCommand: Base64Type):
+        nb_in = nbf.v4.new_notebook()
+
+        # create cells for the entire history
+        for command in commandHistory:
+            cell = nbf.v4.new_code_cell(command.decode_str())
+            nb_in['cells'].append(cell)
+        
+        # create a cell for the new command
+        newCell = nbf.v4.new_code_cell(newCommand.decode_str())
+        nb_in['cells'].append(newCell)
+        
+        return self.get_output_of_last_cell(nb_in)
+
+
     # -------------------- MAY BE USED FOR NEW COMMANDS ---------------------
     def get_output_of_last_cell(self, notebook):
         # execute the notebook
