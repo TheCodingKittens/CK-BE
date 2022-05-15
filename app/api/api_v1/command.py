@@ -47,6 +47,8 @@ async def save_command(
     # 2. get the current state of the variables
     # TODO from the LAST CommandWrapper of the current session, FETCH the variables property
     # latest_variables = ...some db call...
+    # TODO if no prevoius variables were found (only for the very first user entry), just pass an empty dict
+    latest_variables = {}
 
     # 3. Execute the command (Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables)
     try:
@@ -59,6 +61,8 @@ async def save_command(
     # 5. Fetch all of the "command" attributes of all the CommandWrapper objects of the session (as a history basically) -> needed for 6
     # TODO from ALL CommandWrapper of the current session, fetch the "COMMAND" properties to create a list of strings containing all previous commands
     # history_of_prev_commands = ...some db call...
+    # TODO in case of no prevoius commands being available (only for the very first user entry), just pass an empty list
+    history_of_prev_commands = []
 
     # 6. Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
     command_output = jupyter_executor.run_notebook_given_history_and_new_command(history_of_prev_commands, userinput.command)
@@ -83,6 +87,7 @@ async def save_command(
 
     # 10, 11
     # This is the history endpoint, it will return all the "CommandWrappers"
+    # TODO the POST should already return all the CommandWrappers (of the specific session, in order)
 
 
 @router.get("", response_model=List[CommandRead])
