@@ -41,6 +41,7 @@ else:
     assert parsed_command[0]["command"] == "if a == 5:"
     assert parsed_command[1]["type"] == "If.body"
     assert parsed_command[2]["type"] == "If.else"
+    assert parsed_command[2]["command"] == "else:"
     assert len(parsed_command) == 3
 
 
@@ -174,16 +175,19 @@ def test_binary_operation(parser: Parser):
     command_2 = "4 * b"
     command_3 = "c / d"
     command_4 = """a ** 2"""
+    command_5 = """1 + 1 + b + c - 2"""
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
     byte_command_3 = create_bytecode(command_3)
     byte_command_4 = create_bytecode(command_4)
+    byte_command_5 = create_bytecode(command_5)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
     command3_parsed = parser.parse_module(byte_command_3)
     command4_parsed = parser.parse_module(byte_command_4)
+    command5_parsed = parser.parse_module(byte_command_5)
 
     assert command1_parsed[0]["type"] == "Line"
     assert command1_parsed[0]["command"] == "1 + 2"
@@ -201,13 +205,70 @@ def test_binary_operation(parser: Parser):
     assert command4_parsed[0]["command"] == "a ** 2"
     assert len(command4_parsed) == 1
 
+    assert command5_parsed[0]["type"] == "Line"
+    assert command5_parsed[0]["command"] == "1 + 1 + b + c - 2"
+    assert len(command5_parsed) == 1
 
-# def test_for_node(parser: Parser):
 
-#     command = """
-# for i in range(5):
-#     value = i"""
+def test_print(parser: Parser):
+    command_1 = "print(2 + 2)"
+    command_2 = "print(c)"
+    command_3 = """print("Hello World!")"""
 
-#     parsed_module = parser.parse_module(command)
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
 
-#     for_node = NodeToJSONConverter(parsed_module.body[0])
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "print(2 + 2)"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "print(c)"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == """print("Hello World!")"""
+    assert len(command3_parsed) == 1
+
+
+def test_range(parser: Parser):
+    command_1 = "range(5)"
+
+    byte_command_1 = create_bytecode(command_1)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "range(5)"
+    assert len(command1_parsed) == 1
+
+
+def test_for_node(parser: Parser):
+
+    command_1 = """
+for i in range(5):
+    value = i"""
+    command_2 = """
+for i in list:
+    print(i + 1)"""
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+
+    assert command1_parsed[0]["type"] == "For.test"
+    assert command1_parsed[0]["command"] == "for i in range(5):"
+    assert command1_parsed[1]["type"] == "For.body"
+    assert len(command1_parsed) == 2
+
+    assert command2_parsed[0]["type"] == "For.test"
+    assert command2_parsed[0]["command"] == "for i in list:"
+    assert command2_parsed[1]["type"] == "For.body"
+    assert len(command2_parsed) == 2

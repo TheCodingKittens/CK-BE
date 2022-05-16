@@ -89,6 +89,10 @@ class NodeToJSONConverter:
             json_objects = self.create_json_for(node)
         elif classname == "Call":
             json_objects = self.create_json_call(node)
+        elif classname == "List":
+            json_objects = self.create_json_list(node)
+        elif classname == "Dict":
+            json_objects = self.create_json_dict(node)
         else:
             print("ERROR: Unknown node type")
 
@@ -197,12 +201,12 @@ class NodeToJSONConverter:
 
         test = {
             "id": str(uuid.uuid4()),
-            "type": type_test,  # no need to extract, always the same
+            "type": type_test,
             "command": node.__class__.__name__.lower()+" "+value_test+":"
         }
         body = {
             "id": str(uuid.uuid4()),
-            "type": type_body,  # no need to extract, always the same
+            "type": type_body,
             "value": value_body   # NESTED
         }
 
@@ -214,10 +218,40 @@ class NodeToJSONConverter:
         return json_objects
     
     # --------------------------------- FOR -------------------------------
-    # TODO
     def create_json_for(self, node):
 
         json_objects = []
+
+        test_target = node.target.value
+        test_function = node.iter
+        body = node.body
+
+        # recursive calls to parse the test and body sections
+        if test_function.__class__.__name__ == "Call":
+            customVisitor = CustomVisitor()
+            test_function.visit(customVisitor)
+            value_test = customVisitor.stack[0]["command"]
+        else:
+            value_test = test_function.value
+
+        customVisitor = CustomVisitor()
+        body.visit(customVisitor)
+        value_body = customVisitor.stack
+
+        test = {
+            "id": str(uuid.uuid4()),
+            "type": "For.test",  # no need to extract, always the same
+            "command": node.__class__.__name__.lower()+" "+test_target+" in "+value_test+":"
+        }
+        body = {
+            "id": str(uuid.uuid4()),
+            "type": "For.body",  # no need to extract, always the same
+            "value": value_body   # NESTED
+        }
+
+        json_objects.append(test)
+        json_objects.append(body)
+
         return json_objects
 
     # --------------------------------- COMPARISON -------------------------------
@@ -274,17 +308,21 @@ class NodeToJSONConverter:
         json_objects = []
 
         type = node.func.value
-        paramType = node.args[0].value.__class__.__name__
-        if (
-            paramType == "BinaryOperation"
-            or paramType == "BooleanOperation"
-            or paramType == "Comparison"
-        ):
-            customVisitor = CustomVisitor()
-            node.args[0].value.visit(customVisitor)
-            value = customVisitor.stack[0]["command"]
+        # args are empty
+        if not node.args:
+            value = ""
         else:
-            value = node.args[0].value.value
+            paramType = node.args[0].value.__class__.__name__
+            if (
+                paramType == "BinaryOperation"
+                or paramType == "BooleanOperation"
+                or paramType == "Comparison"
+            ):
+                customVisitor = CustomVisitor()
+                node.args[0].value.visit(customVisitor)
+                value = customVisitor.stack[0]["command"]
+            else:
+                value = node.args[0].value.value
 
         data = {
             "id": str(uuid.uuid4()),
@@ -293,4 +331,18 @@ class NodeToJSONConverter:
         }
 
         json_objects.append(data)
+        return json_objects
+
+    # ------------------------------------ LIST ------------------------------------
+    def create_json_list(self, node):
+
+        json_objects = []
+
+        return json_objects
+
+    # ------------------------------------ DICT ------------------------------------
+    def create_json_dict(self, node):
+        
+        json_objects = []
+
         return json_objects
