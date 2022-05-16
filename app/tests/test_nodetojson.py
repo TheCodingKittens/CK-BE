@@ -272,3 +272,23 @@ for i in list:
     assert command2_parsed[0]["command"] == "for i in list:"
     assert command2_parsed[1]["type"] == "For.body"
     assert len(command2_parsed) == 2
+
+
+def test_single_expressions(parser: Parser):
+    # in ipython, this is used to get values by simply typing them
+    command_1 = "a"
+    command_2 = "list"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "a"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "list"
+    assert len(command2_parsed) == 1

@@ -50,11 +50,21 @@ class CustomVisitor(cst.CSTVisitor):
 
     def visit_Call(self, node: "Call") -> Optional[bool]:
         return self.visit_node(node)
+    
+    def visit_List(self, node: "List") -> Optional[bool]:
+        return self.visit_node(node)
 
+    def visit_Dict(self, node: "Dict") -> Optional[bool]:
+        return self.visit_node(node)
 
-    # TODO create an overall method that is called for every node type
-    # def on_visit(self, node: cst.CSTNode) -> bool:
-    #     self.visit_node(node)
+    def visit_Expr(self, node: "Expr") -> Optional[bool]:
+        json_objects = self.nodeToJSONConverter.create_json(node)
+        if not json_objects:
+            return True
+        else:
+            for json_object in json_objects:
+                self.stack.append(json_object)
+            return False
 
 
 
@@ -93,6 +103,8 @@ class NodeToJSONConverter:
             json_objects = self.create_json_list(node)
         elif classname == "Dict":
             json_objects = self.create_json_dict(node)
+        elif classname == "Expr":
+            json_objects = self.create_json_value_check(node)
         else:
             print("ERROR: Unknown node type")
 
@@ -345,4 +357,22 @@ class NodeToJSONConverter:
         
         json_objects = []
 
+        return json_objects
+
+    # ------------------------------------ EXPR ------------------------------------
+    def create_json_value_check(self, node):
+
+        # return false in case any other Expression than "Name" is found (ignore the Expr-node)
+        if node.value.__class__.__name__ != "Name":
+            return False
+
+        json_objects = []
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": node.value.value,
+        }
+
+        json_objects.append(data)
         return json_objects
