@@ -31,6 +31,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             except NotFoundError:
                 raise HTTPException(status_code=404, detail="Model not found")
 
+        return all_models
+
     async def update(self, pk, obj_in: UpdateSchemaType) -> Optional[HashModel]:
         try:
             existing_model = await self.model.get(pk)

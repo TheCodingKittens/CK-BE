@@ -7,9 +7,9 @@ from fastapi import HTTPException
 
 
 class CRUDUser(CRUDBase[User, User, User]):
-    async def get_by_username(username: str) -> User:
+    async def get_by_username(self, username: str) -> User:
         try:
-            return await User.get(username)
+            return await User.find(User.username == username).first()
         except NotFoundError:
             raise HTTPException(status_code=404, detail="Model not found")
 
