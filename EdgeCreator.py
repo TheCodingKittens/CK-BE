@@ -1,165 +1,228 @@
-from dash import Dash, html
-import dash_cytoscape as cyto
+import jsonpickle
+from dataclasses import dataclass
+import json
+
+
+@dataclass
+class IndentationItem:
+    data: dict
+    command_number: int
+    indentation_level: int
 
 
 class EdgeCreator:
-
-    def __init__(self, json_tree, user_friendly_mode=False):
-        self.json_tree = json_tree
-        self.user_friendly_mode = user_friendly_mode
-
-        self.all_nodes = []
+    def __init__(self, json_data):
+        self.json = json_data
         self.edges = []
-        self.connections = {}
         self.indentation_levels = {}
-        self.valid_node_types = ["If.test", "If.body", "If.else", "While.test", "While.body", "Assign"]
-        self.irrelevant_nodes = ["If.body", "While.body"]
-
+        self.all_indentation_items = []
         self.command_number = 0
-        self.create_edges()
+        self.connections = {}
+        self.parents = {}
 
     def create_indentation_levels(self, json_object, indentation_level):
+        indentation_item = IndentationItem(json_object, self.command_number, indentation_level, )
+        self.all_indentation_items.append(indentation_item)
 
+        if indentation_level in self.indentation_levels:
+            self.indentation_levels[indentation_level].append(indentation_item)
+        else:
+            self.indentation_levels[indentation_level] = [indentation_item]
+
+        self.command_number += 1
+
+        if 'value' in json_object:
+            for inner_json_object in json_object['value']:
+                self.create_indentation_levels(inner_json_object, indentation_level + 1)
+
+    def find_connections(self, json_object):
+        connections = []
         json_object_type = json_object['type']
-        json_object_id = json_object['id']
-        if 'command' in json_object:
-            json_object_command = json_object['command']
-            self.all_nodes.append(json_object)
-        else:
-            json_object_command = None
 
-        if json_object_type in self.valid_node_types:
-            # print("Visiting element of type:", element_type)
+        for indentation_item in self.all_indentation_items:
+            if indentation_item.data['id'] == json_object['id']:
+                current_indentation_item: IndentationItem = indentation_item
 
-            if json_object_type not in self.irrelevant_nodes:
-                if indentation_level in self.indentation_levels:
-                    self.indentation_levels[indentation_level].append(
-                        (json_object_type, json_object_command, self.command_number, json_object_id))
-                else:
-                    self.indentation_levels[indentation_level] = [
-                        (json_object_type, json_object_command, self.command_number, json_object_id)]
-                self.command_number += 1
+        start_command_number = current_indentation_item.command_number
+        next_indentation_item: IndentationItem = None
+        previous_indentation_item: IndentationItem = None
 
-            if 'value' in json_object and isinstance(json_object['value'], dict):
-                for key, value in json_object['value'].items():
-                    self.create_indentation_levels(value, indentation_level + 1)
-            elif 'value' in json_object and isinstance(json_object['value'], list):
-                for value in json_object['value']:
-                    self.create_indentation_levels(value, indentation_level + 1)
+        for key, indentation_items_list in self.indentation_levels.items():
+            for indentation_item in indentation_items_list:
+                if indentation_item.command_number == start_command_number + 1:
+                    next_indentation_item = indentation_item
+                elif indentation_item.command_number == start_command_number - 1:
+                    previous_indentation_item = indentation_item
 
-    def find_next_connection(self, json_object):
-        # FIXME: If.test should connect to two nodes: the If.body as well as the node directly after it on \n
-        #  its indentation level (in case the test fails). Same goes for While.test and For.test
-
-        start_command_number = -1
-        next_json_object = None
-        previous_json_object = None
-
-        for key, value in self.indentation_levels.items():
-            for inner_json_object in value:
-                (command_type, command, command_number, command_id) = inner_json_object
-                if command_id == json_object['id']:
-                    start_command_number = command_number
-
-        for key, value in self.indentation_levels.items():
-            for inner_json_object in value:
-                (command_type, command, command_number, command_id) = inner_json_object
-                if command_number == start_command_number + 1:
-                    next_json_object = inner_json_object
-                if command_number == start_command_number - 1:
-                    previous_json_object = inner_json_object
-
-        if not next_json_object:
+        if not next_indentation_item:
             return None
-        elif not previous_json_object:
-            (next_json_object_command_type,
-             next_json_object_command,
-             next_json_object_command_number,
-             next_json_object_command_id) = next_json_object
 
-            return next_json_object_command_id
-        else:
-            (next_json_object_command_type,
-             next_json_object_command,
-             next_json_object_command_number,
-             next_json_object_command_id) = next_json_object
+        if next_indentation_item:
+            if next_indentation_item.indentation_level <= current_indentation_item.indentation_level - 1:
+                return None
 
-            (previous_json_object_command_type,
-             previous_json_object_command,
-             previous_json_object_command_number,
-             previous_json_object_command_id) = previous_json_object
+        if json_object_type == 'Line':
+            connections.append(next_indentation_item.data)
 
-            if previous_json_object_command_type == 'While.test':
-                return previous_json_object_command_id
-            else:
-                return next_json_object_command_id
+        elif json_object_type == 'If.test':
+            connections.append(next_indentation_item.data)
 
-    def create_connection(self, json_object):
-        object_type = json_object['type']
-        # only If.body and While.body do not have a 'command', this eliminates them from being examined
-        if 'command' in json_object:
-            if object_type == 'If.test' or object_type == 'If.body' or object_type == 'If.else' or object_type == 'Assign':
-                self.connections[json_object['id']] = self.find_next_connection(json_object)
+            for indentation_item in self.all_indentation_items:
+                if indentation_item.command_number > start_command_number and \
+                        current_indentation_item.indentation_level == indentation_item.indentation_level:
+                    if indentation_item.data not in connections:
+                        connections.append(indentation_item.data)
+                        break
 
-        if 'value' in json_object and isinstance(json_object['value'], dict):
-            for key, value in json_object['value'].items():
-                self.create_connection(value)
-        elif 'value' in json_object and isinstance(json_object['value'], list):
-            for value in json_object['value']:
-                self.create_connection(value)
+        elif json_object_type == 'If.body':
+            for indentation_item in self.all_indentation_items:
+                if indentation_item.command_number > start_command_number and \
+                        current_indentation_item.indentation_level == indentation_item.indentation_level:
+                    if indentation_item.data not in connections:
+                        connections.append(indentation_item.data)
+                        break
 
-    def get_node_with_id(self, json_object_id):
-        for node in self.all_nodes:
-            if node['id'] == json_object_id:
-                return node
+        elif json_object_type == 'If.else':
+            for indentation_item in self.all_indentation_items:
+                if indentation_item.command_number > start_command_number and \
+                        current_indentation_item.indentation_level == indentation_item.indentation_level:
+                    if indentation_item.data not in connections:
+                        connections.append(indentation_item.data)
+                        break
+
+        elif json_object_type == 'While.test':
+            connections.append(next_indentation_item.data)
+
+            for indentation_item in self.all_indentation_items:
+                if indentation_item.command_number > start_command_number and \
+                        current_indentation_item.indentation_level == indentation_item.indentation_level:
+                    if indentation_item.data not in connections:
+                        connections.append(indentation_item.data)
+                        break
+
+        elif json_object_type == 'While.body':
+            connections.append(previous_indentation_item.data)
+
+        return connections
+
+    def create_connections(self, json_object):
+        self.connections[json_object['id']] = self.find_connections(json_object)
+
+        if 'value' in json_object:
+            for inner_json_object in json_object['value']:
+                self.create_connections(inner_json_object)
+
+    def get_json_object_for_id(self, json_object_id):
+        for indentation_item in self.all_indentation_items:
+            if indentation_item.data['id'] == json_object_id:
+                return indentation_item.data
+
+    def recursively_find_parent_id(self, json_object, from_connection, to_connection, current_parent):
+        if json_object['id'] == from_connection['id']:
+            if current_parent:
+                self.parents[current_parent['id']] = [from_connection, to_connection]
+
+        if json_object['type'] == 'If.body' or json_object['type'] == 'While.body' \
+                or json_object['type'] == 'For.body' or json_object['type'] == 'If.else':
+            current_parent = json_object
+
+        if 'value' in json_object:
+            for inner_json_object in json_object['value']:
+                self.recursively_find_parent_id(inner_json_object, from_connection, to_connection, current_parent)
 
     def create_edges(self):
-        for element in self.json_tree:
-            self.create_indentation_levels(element, 0)
+        for json_object in self.json:
+            self.create_indentation_levels(json_object, 0)
 
-        for json_object in self.json_tree:
-            self.create_connection(json_object)
+        for json_object in self.json:
+            self.create_connections(json_object)
 
-        for key, value in self.connections.items():
-            source_node = self.get_node_with_id(key)
-            target_node = self.get_node_with_id(value)
-            self.edges.append((source_node, target_node))
+        for json_object in self.json:
+            for from_connection_id, connections in self.connections.items():
+                if connections:
+                    for connection in connections:
+                        self.recursively_find_parent_id(
+                            json_object,
+                            self.get_json_object_for_id(from_connection_id),
+                            connection,
+                            None
+                        )
 
-    def visualise_edges(self):
-        app = Dash(__name__)
+        for json_object_id, connections in self.connections.items():
+            if connections:
+                for connection in connections:
+                    if connection:
+                        connection_detail = {
+                            'from': json_object_id,
+                            'to': connection['id']
+                        }
 
-        elements = []
+                        for parent_id, edges in self.parents.items():
+                            if edges[0]['id'] == json_object_id and edges[1]['id'] == connection['id']:
+                                connection_detail['parent'] = parent_id
 
-        for node in self.all_nodes:
-            if 'command' in node:
-                label = node['command']
-
-            item = {
-                'data': {
-                    'id': node['id'],
-                    'label': label
+                        self.edges.append(connection_detail)
+            else:
+                connection_detail = {
+                    'from': json_object_id,
+                    'to': None
                 }
-            }
-            elements.append(item)
+                self.edges.append(connection_detail)
 
-        for source_node, target_node in self.edges:
-            if target_node:
-                item = {
-                    'data': {
-                        'source': source_node['id'],
-                        'target': target_node['id']
-                    }
-                }
-                elements.append(item)
+    def display_connections(self):
+        for json_object_id, connections in self.connections.items():
+            connections_print_format = [] if connections else None
 
-        app.layout = html.Div([
-            html.P("CodingKittens Edges:"),
-            cyto.Cytoscape(
-                id='cytoscape',
-                elements=elements,
-                layout={'name': 'grid'},
-                style={'width': '1000px', 'height': '1000px'}
-            )
-        ])
+            if connections:
+                for connection in connections:
+                    if 'command' in connection:
+                        connections_print_format.append(connection['command'])
+                    else:
+                        connections_print_format.append(connection['type'])
 
-        app.run_server(debug=True)
+            json_object = self.get_json_object_for_id(json_object_id)
+
+            if 'command' in json_object:
+                print(json_object['command'].rjust(40, ' '), '\tconnected to:\t', connections_print_format)
+            else:
+                print(json_object['type'].rjust(40, ' '), '\tconnected to:\t', connections_print_format)
+
+    def display_edges(self, show_ids=True):
+        edges_to_print = []
+
+        for edge_pair in self.edges:
+            from_id = edge_pair['from']
+            to_id = edge_pair['to']
+            from_node = self.get_json_object_for_id(from_id)
+            parent_node = None
+            to_node = self.get_json_object_for_id(to_id)
+            if 'parent' in edge_pair:
+                parent_node = self.get_json_object_for_id(edge_pair['parent'])
+                pass
+            edge_pair_print_format = {'from': None, 'to': None}
+
+            if not show_ids:
+                if from_node:
+                    if 'command' in from_node:
+                        edge_pair_print_format['from'] = from_node['command']
+                    else:
+                        edge_pair_print_format['from'] = from_node['type']
+
+                if to_node:
+                    if 'command' in to_node:
+                        edge_pair_print_format['to'] = to_node['command']
+                    else:
+                        edge_pair_print_format['to'] = to_node['type']
+
+                if parent_node:
+                    if 'command' in parent_node:
+                        edge_pair_print_format['parent'] = parent_node['command']
+                    else:
+                        edge_pair_print_format['parent'] = parent_node['type']
+            else:
+                edge_pair_print_format['from'] = from_id
+                edge_pair_print_format['to'] = to_id
+
+            edges_to_print.append(edge_pair_print_format)
+
+        print(json.dumps(edges_to_print, indent=4, sort_keys=False))
