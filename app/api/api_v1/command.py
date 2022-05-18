@@ -74,6 +74,7 @@ async def save_command(
     edges = edge_creator.create_edges(nodes)
 
     command = Command(
+        token=userinput.token,
         command=userinput.command,
         variables=new_variables,
         edges=edges,

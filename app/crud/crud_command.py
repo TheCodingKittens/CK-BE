@@ -58,8 +58,31 @@ class CRUDCommand(CRUDBase[CommandCreate, CommandCreate, Command]):
 
         return all_models
 
+    async def read_all_by_token(self, token: str) -> Optional[List[CommandRead]]:
+        all_pks = [pk async for pk in await CommandCreate.all_pks()]
+
+        matching_token_models = []
+
+        for pk in all_pks:
+            try:
+                command_db = await CommandCreate.get(pk)
+                if command_db.token == token:
+                    variable_db_objects = await crud.variable.get_all_by_command_pk(
+                        command_pk=pk
+                    )
+                    matching_token_models.append(
+                        CommandRead(
+                            **command_db.dict(),
+                            data=variable_db_objects,
+                        )
+                    )
+            except NotFoundError:
+                raise HTTPException(status_code=404, detail="Unable to filter on Token")
+
+        return matching_token_models
+
     async def update(self, pk, obj_in: Command) -> Optional[CommandRead]:
-        """ Update will not update the command it will just create a new model and overwrite the existing one's location in the set """
+        """Update will not update the command it will just create a new model and overwrite the existing one's location in the set"""
         try:
             existing_model = await CommandCreate.get(pk)
 
@@ -67,7 +90,6 @@ class CRUDCommand(CRUDBase[CommandCreate, CommandCreate, Command]):
                 parser = create_parser()
                 parsed_expression = parser.parse_expression(obj_in.command)
                 return await self.create(obj_in=parsed_expression)
-
 
         except NotFoundError:
             raise HTTPException(status_code=404, detail="Model not found")

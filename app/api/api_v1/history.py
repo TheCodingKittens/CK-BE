@@ -19,3 +19,9 @@ async def list_commands(request: Request, response: Response) -> History:
     # To retrieve this commands with its primary key, we use `commands.get()`:
 
     return await crud.history.read_all()
+
+
+@router.get("/{token}", response_model=History)
+async def list_commands(token: str, request: Request, response: Response) -> History:
+
+    return await crud.history.read_all_by_token(token=token)
