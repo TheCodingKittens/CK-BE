@@ -10,8 +10,8 @@ class ExecutorJuypter():
         # create an ExecutePreprocessor
         self.ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
         # create notebook
-        self.nb_in = nbf.v4.new_notebook()
-        self.cells = self.nb_in['cells']
+        # self.nb_in = nbf.v4.new_notebook()
+        # self.cells = self.nb_in['cells']
 
 
     def create_cell(self, command: Base64Type):
@@ -80,6 +80,18 @@ class ExecutorJuypter():
         nb_in['cells'].append(newCell)
         
         return self.get_output_of_last_cell(nb_in)
+
+
+    # ----- RUN NOTEBOOK FROM HISTORY. RETURNS ALL OUTPUTS -----
+    def run_notebook_given_history(self, commandHistory: List[Base64Type]):
+        nb_in = nbf.v4.new_notebook()
+
+        # create cells for the entire history
+        for command in commandHistory:
+            cell = nbf.v4.new_code_cell(command.decode_str())
+            nb_in['cells'].append(cell)
+        
+        return self.get_output_of_each_cell(nb_in)
 
 
     # -------------------- MAY BE USED FOR NEW COMMANDS ---------------------
