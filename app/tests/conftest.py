@@ -2,6 +2,8 @@ from typing import Generator
 
 import pytest
 from app.main import get_application
+from app.services.executor import Executor
+from app.services.jupyter_executor import ExecutorJuypter
 from app.services.nodetojson import NodeToJSONConverter
 from app.services.parser import Parser
 from fastapi.testclient import TestClient
@@ -16,6 +18,15 @@ def client() -> Generator:
 @pytest.fixture(scope="module")
 def parser() -> Generator:
     return Parser()
+
+
+@pytest.fixture(scope="module")
+def executor() -> Generator:
+    return Executor()
+
+@pytest.fixture(scope="module")
+def jupyterexecutor() -> Generator:
+    return ExecutorJuypter()
 
 
 # TODO implemented the creation of the Node

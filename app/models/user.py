@@ -7,18 +7,10 @@ from aredis_om.model import Field, HashModel, NotFoundError
 from pydantic import BaseModel
 
 
-class CommandData(BaseModel):
-    pk: Optional[str] = Field(title="The Primary Key of The Command Data")
-    var_name: str = Field(
+class User(HashModel):
+    username: str = Field(
         title="The Name of the varibable within the Command", index=True
     )
-    value: str = Field(title="The Value of the Command", index=True)
-    # Possibly an enum in the future
-    type: str = Field(title="The Type of the Command", index=True)
-
-
-class CommandDataCreate(HashModel, CommandData):
-    command_pk: str = Field(title="The Primary Key of the Command", index=True)
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
