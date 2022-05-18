@@ -53,6 +53,7 @@ async def save_command(
     # 3. Execute the command (Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables)
     try:
         new_variables = executor.exec_module_from_history(
+            userinput.command,
             latest_variables
         )
     except Exception as e:
@@ -111,10 +112,92 @@ async def get_command(pk: str, request: Request, response: Response):
         raise HTTPException(status_code=404, detail="Command not found")
 
 
+# 1. User changes a node and sends a request including NodeID, respective CommandWrapperID and new command (for the node)
 @router.put("/{pk}", response_model=CommandRead)
 async def put_command(pk: str, command: Command, response: Response) -> CommandRead:
+
+    # 2. Fetch ALL session wrappers
+    # session_wrappers = ... some db call ...
+    
+
+    # 3. Fetch the modified CommandWrapper given the CommandWrapper ID
+    # modified_wrapper = LOOK FOR CORRECT ONE IN "session_wrappers"
+
+
+    # 4. Create a list of successors and predecessor (also needed later on)
+    # successors = session_wrappers AFTER THE MODIFIED ONE
+    # predecessors = session_wrappers BEFORE THE MODIFIED ONE
+
+
+    # 5. Call a function (Grigor’s work) to create a new TEMPORARY JSON-tree (for the “nodes” of the commandwrapper) with the updates made
+    # current_nodes = modified_wrapper GET "nodes" JSON
+    # new_nodes = CALL FUNTION
+
+
+    # 6. Create the updated command property of the CommandWrapper by calling a function that creates the code from the temporary JSON tree (Grigor’s work)
+    # new_commandwrapper_command = create_python_code(new_nodes) -> CALL FUNTION
+
+
+    # 7. Recreate edges (again, just temporarily save them)
+    # new_edges = edge_creator.create_edges(new_nodes)
+
+
+    # 8. Fetch the state of the variables from the PREVIOUS commandwrapper (the one before the modified one)
+    # latest_variables = predecessors[-1].variables
+
+
+    # 9. Call the exec function for the temporary command of the CommandWrapper with the previously fetched variables as input and temporarily save the variables. 
+    # try:
+    #     new_variables = executor.exec_module_from_history(
+    #         new_commandwrapper_command,
+    #         latest_variables
+    #     )
+    # except Exception as e:
+    #     return {"error": str(e)}
+
+
+    # 10. Now for all CommandWrappers that come AFTER the modified one, execute again
+    # temp_vars = [] # create a list to store the variables for each successor wrapper temporarily
+    # current_vars = new_variables # start by passing the just fetched vars
+    # try:
+    #     for wrapper in successors:
+    #         current_vars = executor.exec_module_from_history(
+    #             wrapper.command, # feed the command of the wrapper
+    #             current_vars # and the history of the previous
+    #         )
+    #         # and then add the just fetched vars to a list
+    #         temp_vars.append(current_vars)
+    # except Exception as e:
+    #     return {"error": str(e)}
+
+
+    # 11. NO ERROR IS THROWN -> update all the CommandWrappers with the temporary stored values
+    # Start with the initially modified one:
+    # UPDATE "modified_wrapper" WITH "new_nodes", "new_commandwrapper_command", "new_edges", "new_variables"
+
+    # and then all the successors
+    # for i in range(len(successors)):
+    #     SAVE temp_vars[i] TO the "variables" of successors[i]
+
+
+    # 12. Now combine ALL session CommandWrapper and execute them in a Jupyter notebook while receiving the outputs
+    # all_wrappers = predecessors + modified_wrapper + successors
+    # command_list = [wrapper.command for wrapper in all_wrappers]
+    # all_outputs = run_notebook_given_history(command_list)
+
+
+    # 13. add all the new outputs to all the Wrappers
+    # for i in range(len(all_wrappers)):
+    #     UPDATE all_wrappers[i] WITH all_outputs[i]
+
+
+    # 14. SAVE ALL THE WRAPPERS
+
+
+    # 15. RETURN THE HISTORY OF ALL SESSION WRAPPERS
+
+
     try:
         return await crud.command.update(pk=pk, obj_in=command)
-
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Command not found")
