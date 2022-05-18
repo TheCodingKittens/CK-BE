@@ -156,45 +156,48 @@ async def put_command(pk: str, command: Command, response: Response) -> CommandR
     #     return {"error": str(e)}
 
 
-    # 10. Now for all CommandWrappers that come AFTER the modified one, execute again
+    # 10. Now for all successor CommandWrappers, execute again
     # temp_vars = [] # create a list to store the variables for each successor wrapper temporarily
-    # current_vars = new_variables # start by passing the just fetched vars
+    # current_vars = new_variables # start by passing the just fetched vars from the modified wrapper
     # try:
     #     for wrapper in successors:
     #         current_vars = executor.exec_module_from_history(
     #             wrapper.command, # feed the command of the wrapper
     #             current_vars # and the history of the previous
     #         )
-    #         # and then add the just fetched vars to a list
+    #         # and then add the received variables to a list
     #         temp_vars.append(current_vars)
     # except Exception as e:
     #     return {"error": str(e)}
 
 
-    # 11. NO ERROR IS THROWN -> update all the CommandWrappers with the temporary stored values
+    # 11. Now combine ALL commands (including the updated one) and execute them in a Jupyter notebook to receive the outputs
+    # predecessor_commands = [wrapper.command for wrapper in predecessors]
+    # successor_commands = [wrapper.command for wrapper in successors]
+    # all_wrapper_commands = predecessor_commands + new_commandwrapper_command + successor_commands
+
+    # try:
+    #     all_outputs = run_notebook_given_history(all_wrapper_commands)
+    # except Exception as e:
+    #     return {"error": str(e)}
+    # relevant_outputs = all_outputs[-(1+len(successors)):] # fetch all outputs for the modified_wrapper and all successors
+
+
+    # 12. NO ERROR WAS THROWN SO FAR -> Create new CommandWrappers and delete the old ones
     # Start with the initially modified one:
-    # UPDATE "modified_wrapper" WITH "new_nodes", "new_commandwrapper_command", "new_edges", "new_variables"
+    # CREATE "modified_wrapper" WITH "new_nodes", "new_commandwrapper_command", "new_edges", "new_variables", "relevant_outputs[0]"
+    # REPLACE "modified_wrapper" with the newly created wrapper
 
-    # and then all the successors
+    # and then all the successors (CREATE NEW ONES, REPLACING THE VARIABLES AND OUTPUTS, REST SHOULD STAY THE SAME)
     # for i in range(len(successors)):
-    #     SAVE temp_vars[i] TO the "variables" of successors[i]
+    #     CREATE NEW WRAPPER with "temp_vars[i]" for variables, "relevant_outputs[i+1]" for outputs and all other parameters from successors[i]
+    #     REPLACE successors[i] with the newly created wrapper
 
 
-    # 12. Now combine ALL session CommandWrapper and execute them in a Jupyter notebook while receiving the outputs
-    # all_wrappers = predecessors + modified_wrapper + successors
-    # command_list = [wrapper.command for wrapper in all_wrappers]
-    # all_outputs = run_notebook_given_history(command_list)
+    # 13. SAVE ALL THE NEWLY CREATED WRAPPERS AND DELETE THE OLD ONES
 
 
-    # 13. add all the new outputs to all the Wrappers
-    # for i in range(len(all_wrappers)):
-    #     UPDATE all_wrappers[i] WITH all_outputs[i]
-
-
-    # 14. SAVE ALL THE WRAPPERS
-
-
-    # 15. RETURN THE HISTORY OF ALL SESSION WRAPPERS
+    # 14. RETURN THE HISTORY OF ALL SESSION WRAPPERS
 
 
     try:
