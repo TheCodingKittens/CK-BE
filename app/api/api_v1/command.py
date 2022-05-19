@@ -4,18 +4,15 @@ from typing import List
 
 # CRUD operations for the Command model
 from app import crud
-
 # Models
 from app.models.command import Command, CommandCreate, UserInput
 from app.models.edge import Edge
 from app.models.node import Node
 from app.models.variable import Variable
-
 # Services
 from app.services.edge_creator import EdgeCreator
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
-
 # Fastapi Dependencies
 from app.services.parser import Parser
 from aredis_om.model import NotFoundError
@@ -173,8 +170,8 @@ async def get_command(pk: str, request: Request, response: Response):
 
 
 # 1. User changes a node and sends a request including NodeID, respective CommandWrapperID and new command (for the node)
-@router.put("/{pk}", response_model=CommandRead)
-async def put_command(pk: str, command: Command, response: Response) -> CommandRead:
+@router.put("/{pk}", response_model=Command)
+async def put_command(pk: str, command: Command, response: Response) -> Command:
 
     # 2. Fetch ALL session wrappers
     # session_wrappers = ... some db call ...
