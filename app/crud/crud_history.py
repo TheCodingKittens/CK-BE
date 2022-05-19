@@ -23,7 +23,7 @@ class CRUDHistory(CRUDBase[History, History, History]):
             commands = await crud.command.read_all_by_token(token=token)
 
             # order by timestamp
-            commands = sorted(commands, key=lambda x: x.timestamp, reverse=True)
+            commands = sorted(commands, key=lambda x: x.created_at, reverse=True)
 
             return History(commands=commands)
 
