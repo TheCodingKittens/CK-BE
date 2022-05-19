@@ -24,21 +24,7 @@ from starlette.responses import Response
 router = APIRouter()
 
 
-# 1.	User inputs a new command (single or multi-line) and sends it to the backend
-# 2.	Next thing will be the execution using exec(), in order to get the new variable values. What we need for this is the current state of the variables in the specific session (retrieved from the latest CommandWrapper of the session).
-# 3.	Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables.
-# If an error is thrown -> return this error to the frontend and stop
-# 4.	No error -> create a new “CommandWrapper” object and set the “command” property to be the user input (once again, can be single or multiple line), the “variables” property to be current state of variables (returned from exec) and also create a timestamp and set the token sent from the user.
-# 5.	Fetch all of the command attributes of all the CommandWrapper objects of the session (as a history basically) -> needed for 6
-# 6.	Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
-# 7.	Save the output to the new CommandWrapper
-# 8.	Parse the input using the parse_module function and retrieve the nodes and edges.
-# 9.	Save the nodes and edges to the CommandWrapper
-# 10.	Save the CommandWrapper to the list (f. ex. LinkedList) to be accessed later on
-# 11.	Return a list of all CommandWrappers (including variables, outputs, nodes and edges) to the frontent
-
-
-# 1. User Posts a new command to /api/v1/command
+# User Posts a new command to /api/v1/command
 @router.post("", response_model=List[Command])
 async def save_command(
     userinput: UserInput,
@@ -47,47 +33,39 @@ async def save_command(
     jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
 ) -> Command:
 
-    # 2. get the current state of the variables
+    # get the session history of all command_wrappers
     current_state = await crud.command.read_all_by_token(userinput.token)
 
-    # get the latest command from current_state if empty set to []
+    # get the latest command from current_state.. if empty set to []
     latest_command = current_state[-1] if current_state else []
 
-    # TODO from the LAST CommandWrapper of the current session, FETCH the variables property
-    # latest_variables = ...some db call...
-    # TODO if no prevoius variables were found (only for the very first user entry), just pass an empty dict
+    # fetch the current state of variables
+    latest_variables = {}
 
-    latest_variables = (
-        {x.var_name: x.value for x in latest_command.variables}
-        if latest_command
-        else {}
-    )
+    if latest_command:
+        for x in latest_command.variables:
+            value = int(x.value) if x.value.isnumeric() else x.value
+            latest_variables[x.var_name] = value
 
-    # 3. Execute the command (Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables)
-
+    # Execute the command using the current state of variables and retrieve the new state of the variables
     new_variables = executor.exec_module_from_history(
         module=userinput.command, history=latest_variables
     )
 
-    # 5. Fetch all of the "command" attributes of all the CommandWrapper objects of the session (as a history basically) -> needed for 6
-    # TODO from ALL CommandWrapper of the current session, fetch the "COMMAND" properties to create a list of strings containing all previous commands
-    # history_of_prev_commands = ...some db call...
-    # TODO in case of no prevoius commands being available (only for the very first user entry), just pass an empty list
-
+    # Fetch all of the "command" attributes of all the CommandWrapper objects of the session (as a history basically) -> needed for 6
     history_of_prev_commands = [command.command for command in current_state]
 
-    # 6. Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
+    # Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
     command_output = jupyter_executor.run_notebook_given_history_and_new_command(
         history_of_prev_commands, userinput.command
     )
 
-    # 8. Parse the input using the parse_module function and retrieve the nodes and edges.
+    # Parse the input using the parse_module function and retrieve the nodes and edges
     # TODO ensure the nodes are being returned correctly
     # TODO change create_edges to accept nodes
     nodes = parser.parse_module(userinput.command)
 
-    # 4, 7, 9 Can be one step because we need to only create one "CommandWrapper" object
-    # TODO modify the command wrapper to be able to save the command and the variables
+    # create the commandwrapper object
     db_command = await crud.command.create(
         obj_in=CommandCreate(
             token=userinput.token,
@@ -96,15 +74,13 @@ async def save_command(
         )
     )
 
-    # Create and Save Variables
-
+    # create and save variables
     for key, item in new_variables.items():
         await crud.variable.create(
             Variable(command_pk=db_command.pk, var_name=key, value=item)
         )
 
-    # Create and Save Nodes
-
+    # create and save nodes
     for node in nodes:
 
         if node.get("value"):
@@ -130,8 +106,7 @@ async def save_command(
             )
         )
 
-    # Create and Save Edges
-
+    # create and save edges
     edgeCreator = EdgeCreator(nodes)
     edgeCreator.create_edges()
 
@@ -145,6 +120,7 @@ async def save_command(
             )
         )
 
+    # return the history of all commandwrapper fiven the token
     return await crud.command.read_all_by_token(token=userinput.token)
 
 
