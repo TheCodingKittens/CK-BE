@@ -11,9 +11,10 @@ class Node(HashModel):
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
-    id: str = Field(title="The ID of the Node", index=True)
-    type: str = Field(title="The Type of the Node")
-    command: str = Field(title="The Command")
+    id: Optional[str] = Field(title="The ID of the Node", index=True)
+    type: Optional[str] = Field(title="The Type of the Node")
+    command: Optional[str] = Field(title="The Command")
+    value: Optional[str] = Field(title="The Value of the Node")
 
     class Meta:
         database = get_redis_connection(

@@ -16,8 +16,6 @@ class Variable(HashModel):
         title="The Name of the varibable within the Command", index=True
     )
     value: str = Field(title="The Value of the Command", index=True)
-    # Possibly an enum in the future
-    type: str = Field(title="The Type of the Command", index=True)
 
     class Meta:
         database = get_redis_connection(

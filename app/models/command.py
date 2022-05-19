@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from app.models.base64 import Base64Type
 from app.models.edge import Edge
+from app.models.node import Node
 from app.models.variable import Variable
 from app.utils.config import settings
 from aredis_om.connections import get_redis_connection
@@ -26,13 +27,12 @@ class UserInput(BaseModel):
 
 
 class CommandCreate(HashModel):
-    command: Base64Type = Field(title="The User's Command", index=True)
+    command: bytes = Field(title="The User's Command", index=True)
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
-    token: str = Field(title="Token")
+    token: Optional[str] = Field(title="Token")
     output: Optional[str] = Field(title="Output of the command")
-    # data: List[CommandData] = Field(title="The Data of the Command")
 
     # You can set the Redis OM URL using the REDIS_OM_URL environment
     # variable, or by manually creating the connection using your model's
@@ -44,19 +44,15 @@ class CommandCreate(HashModel):
 
 
 class Command(BaseModel):
-    command: str = Field(title="The User's Command", index=True)
+    pk: str = Field(title="The Primary Key")
+    command: Base64Type = Field(title="The User's Command", index=True)
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
     token: str = Field(title="Token")
-    variables: List[Variable] = Field(title="The Data of the Command", index=True)
     output: Optional[str] = Field(title="The Output of the Command")
-    edges: Optional[Edge] = Field(title="The Edges of the Command")
-    # TODO create a node Object
-    nodes: Optional[str] = Field(title="The Nodes of the Command")
-
-
-class CommandRead(Command):
-    """Pydantic Command Object"""
-
-    pk: str = Field(title="Primary Key", index=True)
+    variables: Optional[List[Variable]] = Field(
+        title="The Data of the Command", index=True
+    )
+    edges: Optional[List[Edge]] = Field(title="The Edges of the Command")
+    nodes: Optional[List[Node]] = Field(title="The Nodes of the Command")

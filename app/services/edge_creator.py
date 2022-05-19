@@ -183,6 +183,7 @@ class EdgeCreator:
                         connection_detail = {
                             "from": json_object_id,
                             "to": connection["id"],
+                            "parent": None,
                         }
 
                         for parent_id, edges in self.parents.items():
@@ -194,7 +195,7 @@ class EdgeCreator:
 
                         self.edges.append(connection_detail)
             else:
-                connection_detail = {"from": json_object_id, "to": None}
+                connection_detail = {"from": json_object_id, "to": None, "parent": None}
                 self.edges.append(connection_detail)
 
     def display_connections(self):
