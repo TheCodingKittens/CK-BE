@@ -81,22 +81,10 @@ async def save_command(
         )
 
     # create and save nodes
+    # TODO manage it so that all indentation levels work (for now, only 2 levels deep works)
     for node in nodes:
-
-        if node.get("value"):
-            nested_nodes = node.get("value")
-            # TODO handle nested nodes
-
-            for nested_node in nested_nodes:
-                await crud.node.create(
-                    Node(
-                        command_pk=db_command.pk,
-                        id=nested_node.get("id"),
-                        type=nested_node.get("type"),
-                        command=nested_node.get("command"),
-                    )
-                )
-
+        
+        # save the node
         await crud.node.create(
             Node(
                 command_pk=db_command.pk,
@@ -105,6 +93,33 @@ async def save_command(
                 command=node.get("command"),
             )
         )
+        # and look for "children"
+        if node.get("value"):
+            nested_nodes = node.get("value")
+            for nested_node in nested_nodes:
+                # save the node
+                await crud.node.create(
+                    Node(
+                        command_pk=db_command.pk,
+                        # parent_node_pk=node.pk,   TODO uncomment as soon as value exists
+                        id=nested_node.get("id"),
+                        type=nested_node.get("type"),
+                        command=nested_node.get("command"),
+                    )
+                )
+                # and look for more "children"
+                if nested_node.get("value"):
+                    nested_nested_nodes = nested_node.get("value")
+                    for nested_nested_node in nested_nested_nodes:
+                        await crud.node.create(
+                            Node(
+                                command_pk=db_command.pk,
+                                # parent_node_pk=nested_node.pk,   TODO uncomment as soon as value exists
+                                id=nested_nested_node.get("id"),
+                                type=nested_nested_node.get("type"),
+                                command=nested_nested_node.get("command"),
+                            )
+                        )
 
     # create and save edges
     edgeCreator = EdgeCreator(nodes)
