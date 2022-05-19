@@ -1,7 +1,7 @@
 import base64
 
 from app.models.base64 import Base64Type
-from app.services.nodetojson import NodeToJSONConverter
+from app.services.node_to_json import NodeToJSONConverter
 from app.services.parser import Parser
 
 

@@ -3,12 +3,15 @@ from typing import List
 
 # CRUD operations for the Command model
 from app import crud
+
 # Models
 from app.models.command import Command, CommandRead, UserInput
+
 # Services
-from app.services.edgecreator import EdgeCreator
+from app.services.edge_creator import EdgeCreator
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
+
 # Fastapi Dependencies
 from app.services.parser import Parser
 from aredis_om.model import NotFoundError
@@ -41,7 +44,6 @@ async def save_command(
     parser: Parser = Depends(Parser),
     executor: Executor = Depends(Executor),
     jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
-    edge_creator: EdgeCreator = Depends(EdgeCreator),
 ) -> CommandRead:
 
     # 2. get the current state of the variables
@@ -52,9 +54,7 @@ async def save_command(
 
     # 3. Execute the command (Call “exec_module_from_history” using the current state of variables and retrieve the new state of the variables)
     try:
-        new_variables = executor.exec_module_from_history(
-            latest_variables
-        )
+        new_variables = executor.exec_module_from_history(latest_variables)
     except Exception as e:
         return {"error": str(e)}
 
@@ -65,19 +65,23 @@ async def save_command(
     history_of_prev_commands = []
 
     # 6. Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
-    command_output = jupyter_executor.run_notebook_given_history_and_new_command(history_of_prev_commands, userinput.command)
+    command_output = jupyter_executor.run_notebook_given_history_and_new_command(
+        history_of_prev_commands, userinput.command
+    )
 
     # 8. Parse the input using the parse_module function and retrieve the nodes and edges.
     # TODO ensure the nodes are being returned correctly
     # TODO change create_edges to accept nodes
     nodes = parser.parse_module(userinput.command)
-    edges = edge_creator.create_edges(nodes)
+
+    edgeCreator = EdgeCreator(nodes)
+    edgeCreator.create_edges()
 
     command = Command(
         token=userinput.token,
         command=userinput.command,
         variables=new_variables,
-        edges=edges,
+        edges=edgeCreator.edges,
         output=command_output,
         nodes=nodes,
     )
