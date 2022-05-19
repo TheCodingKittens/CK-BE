@@ -79,27 +79,7 @@ else:
     assert outputs[3] == "b is 4\n"
 
 
-# Would be used in case of a new command entry (since all cells before already know their output)
-def test_jupyter_last_cell_output(jupyterexecutor: ExecutorJuypter):
 
-    history = []
-
-    history.append(Base64Type(base64.b64encode(b"a = 2")))
-    history.append(Base64Type(base64.b64encode(b"a")))
-    history.append(Base64Type(base64.b64encode(b"1 + 4")))
-    history.append(Base64Type(base64.b64encode(b"a = 3")))
-    history.append(Base64Type(base64.b64encode(b"a")))
-
-    new_command = (Base64Type(base64.b64encode(b"""if a == 3:
-    print("a is 3")
-print("Done")""")))
-
-    last_cell_output = jupyterexecutor.run_notebook_given_history_and_new_command(history, new_command)
-
-    assert last_cell_output == "a is 3\nDone\n"
-
-
-# Would be used in case of a change, to override all the CommandWrapper outputs
 def test_jupyter_cell_output_individually(jupyterexecutor: ExecutorJuypter):
 
     history = []
@@ -125,3 +105,51 @@ else:
     assert all_cells_output[3] == ""
     assert all_cells_output[4] == "ELSE\n"
     assert all_cells_output[5] == "9"
+
+
+# ----- Would be used in case of a new command entry (since all cells before already know their output) -----
+def test_jupyter_last_cell_output(jupyterexecutor: ExecutorJuypter):
+
+    history = []
+
+    history.append(Base64Type(base64.b64encode(b"a = 2")))
+    history.append(Base64Type(base64.b64encode(b"a")))
+    history.append(Base64Type(base64.b64encode(b"1 + 4")))
+    history.append(Base64Type(base64.b64encode(b"a = 3")))
+    history.append(Base64Type(base64.b64encode(b"a")))
+
+    new_command = (Base64Type(base64.b64encode(b"""if a == 3:
+    print("a is 3")
+print("Done")""")))
+
+    last_cell_output = jupyterexecutor.run_notebook_given_history_and_new_command(history, new_command)
+
+    assert last_cell_output == "a is 3\nDone\n"
+
+
+# ----- Would be used in case of a command edit -----
+def test_jupyter_run_notebook_given_history(jupyterexecutor: ExecutorJuypter):
+
+    history = []
+
+    history.append(Base64Type(base64.b64encode(b"a = 7")))
+    history.append(Base64Type(base64.b64encode(b"a")))
+    history.append(Base64Type(base64.b64encode(b"5 + 4 - 1")))
+    history.append(Base64Type(base64.b64encode(b"b = 4")))
+    history.append(Base64Type(base64.b64encode(b"""if a > 3:
+    print("IF")
+else:
+    print("ELSE")""")))
+    history.append(Base64Type(base64.b64encode(b"3 + 5 + b")))
+    history.append(Base64Type(base64.b64encode(b"print(1/1)")))
+
+    all_outputs = jupyterexecutor.run_notebook_given_history(history)
+
+    assert len(all_outputs) == 7
+    assert all_outputs[0] == ""
+    assert all_outputs[1] == "7"
+    assert all_outputs[2] == "8"
+    assert all_outputs[3] == ""
+    assert all_outputs[4] == "IF\n"
+    assert all_outputs[5] == "12"
+    assert all_outputs[6] == "1.0\n"
