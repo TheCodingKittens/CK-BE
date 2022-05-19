@@ -4,7 +4,7 @@ import pytest
 from app.main import get_application
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
-from app.services.nodetojson import NodeToJSONConverter
+from app.services.node_to_json import NodeToJSONConverter
 from app.services.parser import Parser
 from fastapi.testclient import TestClient
 
