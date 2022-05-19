@@ -4,7 +4,7 @@ import libcst as cst
 from app.models.base64 import Base64Type
 from app.models.command import Command
 from app.models.variable import Variable
-from app.services.nodetojson import CustomVisitor
+from app.services.node_to_json import CustomVisitor
 
 """
 Class to parse incoming strings from the frontend

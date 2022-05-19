@@ -4,6 +4,7 @@ from io import StringIO
 from typing import List
 
 from app.models.base64 import Base64Type
+from fastapi import HTTPException
 
 """
 Class to execute the incoming strings from the frontend
@@ -54,7 +55,6 @@ class Executor:
     #     except Exception as e:
     #         return e
 
-
     def exec_module(self, module: Base64Type):
         try:
             # Get the Output of the module
@@ -73,7 +73,6 @@ class Executor:
         except Exception as e:
             return e
 
-
     def exec_command_history(self, command_history: List[Base64Type]):
         output = {}
         try:
@@ -83,7 +82,6 @@ class Executor:
             return output
         except Exception as e:
             return e
-
 
     # executes a module, taking a dict with variables as an input
     def exec_module_from_history(self, module: Base64Type, history: dict):
@@ -102,4 +100,4 @@ class Executor:
             return localsParameter
 
         except Exception as e:
-            return e
+            raise HTTPException(status_code=400, detail=str(e))

@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from app import crud
 from app.crud.base import CRUDBase
-from app.models.command import CommandRead
+from app.models.command import Command
 from app.models.history import History
 from aredis_om.model import HashModel, NotFoundError
 from fastapi import HTTPException
@@ -20,12 +20,7 @@ class CRUDHistory(CRUDBase[History, History, History]):
 
     async def read_all_by_token(self, token: str) -> History:
         try:
-            commands = await crud.command.read_all_by_token(token=token)
-
-            # order by timestamp
-            commands = sorted(commands, key=lambda x: x.timestamp, reverse=True)
-
-            return History(commands=commands)
+            return History(commands=await crud.command.read_all_by_token(token=token))
 
         except NotFoundError:
             raise HTTPException(
