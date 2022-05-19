@@ -92,7 +92,7 @@ class CRUDCommand(CRUDBase[CommandCreate, CommandCreate, Command]):
             except NotFoundError:
                 raise HTTPException(status_code=404, detail="Unable to filter on Token")
 
-        return sorted(matching_token_models, key=lambda x: x.created_at, reverse=True)
+        return sorted(matching_token_models, key=lambda x: x.created_at, reverse=False)
 
     async def update(self, pk, obj_in: Command) -> Optional[Command]:
         """Update will not update the command it will just create a new model and overwrite the existing one's location in the set"""
