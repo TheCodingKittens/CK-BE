@@ -1,10 +1,9 @@
-import jsonpickle
 import json
 
 
 class NodeEditor:
     def __init__(self, json_data):
-        self.json = jsonpickle.decode(json_data)
+        self.json = json_data
         self.initial_node = None
         self.edited_node = None
         self.node_to_edit_id = None
