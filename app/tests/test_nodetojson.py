@@ -292,3 +292,77 @@ def test_single_expressions(parser: Parser):
     assert command2_parsed[0]["type"] == "Line"
     assert command2_parsed[0]["command"] == "list"
     assert len(command2_parsed) == 1
+
+
+def test_list(parser: Parser):
+
+    command = "[1, 2, 3, 4]"
+
+    byte_command = create_bytecode(command)
+
+    command_parsed = parser.parse_module(byte_command)
+
+    assert command_parsed[0]["type"] == "Line"
+    assert command_parsed[0]["command"] == "[1, 2, 3, 4]"
+    assert len(command_parsed) == 1
+
+
+def test_list_assign(parser: Parser):
+
+    command_1 = "a = [1, 2, 3]"
+    command_2 = "c = [\"Hey\", True, 2]"
+    command_3 = "d = []"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "a = [1, 2, 3]"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "c = [\"Hey\", True, 2]"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "d = []"
+    assert len(command3_parsed) == 1
+
+
+def test_nested_lists_assign(parser: Parser):
+
+    command_1 = "a = [[2, 3], [5, 6]]"
+    command_2 = "c = [[2, True], False, 4, [3]]"
+    command_3 = "d = [[], [], []]"
+    command_4 = "z = [a, [b, c, [d, e]], f]"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+    byte_command_4 = create_bytecode(command_4)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+    command4_parsed = parser.parse_module(byte_command_4)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "a = [[2, 3], [5, 6]]"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "c = [[2, True], False, 4, [3]]"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "d = [[], [], []]"
+    assert len(command3_parsed) == 1
+
+    assert command4_parsed[0]["type"] == "Line"
+    assert command4_parsed[0]["command"] == "z = [a, [b, c, [d, e]], f]"
+    assert len(command4_parsed) == 1
