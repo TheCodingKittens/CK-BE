@@ -8,6 +8,8 @@ import libcst as cst
 """
 Class to visit all the nodes relevant for the project
 """
+
+
 class CustomVisitor(cst.CSTVisitor):
     def __init__(self):
         # store all the JSON content in a stack
@@ -41,16 +43,16 @@ class CustomVisitor(cst.CSTVisitor):
 
     def visit_Comparison(self, node: "Comparison") -> Optional[bool]:
         return self.visit_node(node)
-    
+
     def visit_BooleanOperation(self, node: "BooleanOperation") -> Optional[bool]:
         return self.visit_node(node)
-    
+
     def visit_BinaryOperation(self, node: "BinaryOperation") -> Optional[bool]:
         return self.visit_node(node)
 
     def visit_Call(self, node: "Call") -> Optional[bool]:
         return self.visit_node(node)
-    
+
     def visit_List(self, node: "List") -> Optional[bool]:
         return self.visit_node(node)
 
@@ -65,7 +67,6 @@ class CustomVisitor(cst.CSTVisitor):
             for json_object in json_objects:
                 self.stack.append(json_object)
             return False
-
 
 
 # This class defines a JSON converter, which is used to create JSON objects out of CSTNodes
@@ -112,46 +113,66 @@ class NodeToJSONConverter:
 
     # ---------------------------- ASSIGN --------------------------
     def create_json_object_assign(self, node):
-
         targets = node.targets
         value = node.value
         json_objects = []
 
-        # GRIGOR: Multiple assignments on one line, e.g. a,b=2,3
-        if hasattr(value, "elements"):
-            value_elements = value.elements
-            target_elements = targets[0].target.elements
-
-            for (value_element, target_element) in zip(value_elements, target_elements):
-                var_value = self.extract_field(str(value_element), "value='", "',")
-                var_name = self.extract_field(str(target_element), "value='", "',")
-
-                data = {
-                    "id": str(uuid.uuid4()),
-                    "type": "Line",
-                    "command": var_name+" = "+var_value
-                }
-
-                json_objects.append(data)
-
-        # GRIGOR: One assignment only, e.g. a=3 / a=3+3
-        else:
-
-            if value.__class__.__name__ == "BinaryOperation" or value.__class__.__name__ == "Comparison":
-                customVisitor = CustomVisitor()
-                value.visit(customVisitor)
-                var_value = customVisitor.stack[0]["command"]
-            else:
-                var_value = value.value
+        # in case of creating a list, recursively visit the "List" node
+        if value.__class__.__name__ == "List":
+            customVisitor = CustomVisitor()
+            value.visit(customVisitor)
+            var_value = customVisitor.stack[0]["command"]
+            # var_value = "some list"
             var_name = targets[0].target.value
 
             data = {
                 "id": str(uuid.uuid4()),
                 "type": "Line",
-                "command": var_name+" = "+var_value
+                "command": var_name + " = " + var_value,
             }
-
             json_objects.append(data)
+
+        else:
+            # GRIGOR: Multiple assignments on one line, e.g. a,b=2,3
+            if hasattr(value, "elements"):
+                value_elements = value.elements
+                target_elements = targets[0].target.elements
+
+                for (value_element, target_element) in zip(
+                    value_elements, target_elements
+                ):
+                    var_value = self.extract_field(str(value_element), "value='", "',")
+                    var_name = self.extract_field(str(target_element), "value='", "',")
+
+                    data = {
+                        "id": str(uuid.uuid4()),
+                        "type": "Line",
+                        "command": var_name + " = " + var_value,
+                    }
+
+                    json_objects.append(data)
+
+            # GRIGOR: One assignment only, e.g. a=3 / a=3+3
+            else:
+
+                if (
+                    value.__class__.__name__ == "BinaryOperation"
+                    or value.__class__.__name__ == "Comparison"
+                ):
+                    customVisitor = CustomVisitor()
+                    value.visit(customVisitor)
+                    var_value = customVisitor.stack[0]["command"]
+                else:
+                    var_value = value.value
+                var_name = targets[0].target.value
+
+                data = {
+                    "id": str(uuid.uuid4()),
+                    "type": "Line",
+                    "command": var_name + " = " + var_value,
+                }
+
+                json_objects.append(data)
 
         return json_objects
 
@@ -173,7 +194,7 @@ class NodeToJSONConverter:
         data = {
             "id": str(uuid.uuid4()),
             "type": "Line",
-            "command": left+" "+type_text+" "+right
+            "command": left + " " + type_text + " " + right,
         }
 
         json_objects.append(data)
@@ -187,10 +208,14 @@ class NodeToJSONConverter:
         elseNode = node.orelse
         json_objects = []
 
-        # recursive calls to parse the test and body sections
-        customVisitor = CustomVisitor()
-        test.visit(customVisitor)
-        value_test = customVisitor.stack[0]["command"]
+        # if the test is a simple check (f.ex. if True   /   if a)
+        if test.__class__.__name__ == "Name":
+            value_test = test.value
+        else:
+            # recursive calls to parse the test and body sections
+            customVisitor = CustomVisitor()
+            test.visit(customVisitor)
+            value_test = customVisitor.stack[0]["command"]
 
         customVisitor = CustomVisitor()
         body.visit(customVisitor)
@@ -204,8 +229,8 @@ class NodeToJSONConverter:
             elseNode = {
                 "id": str(uuid.uuid4()),
                 "type": "If.else",  # no need to extract, always the same
-                "value": value_else,   # NESTED
-                "command": "else:"
+                "value": value_else,  # NESTED
+                "command": "else:",
             }
 
         type_test = node.__class__.__name__ + "." + "test"
@@ -214,21 +239,21 @@ class NodeToJSONConverter:
         test = {
             "id": str(uuid.uuid4()),
             "type": type_test,
-            "command": node.__class__.__name__.lower()+" "+value_test+":"
+            "command": node.__class__.__name__.lower() + " " + value_test + ":",
         }
         body = {
             "id": str(uuid.uuid4()),
             "type": type_body,
-            "value": value_body   # NESTED
+            "value": value_body,  # NESTED
         }
 
         json_objects.append(test)
         json_objects.append(body)
         if elseNode is not None:
             json_objects.append(elseNode)
-        
+
         return json_objects
-    
+
     # --------------------------------- FOR -------------------------------
     def create_json_for(self, node):
 
@@ -253,12 +278,17 @@ class NodeToJSONConverter:
         test = {
             "id": str(uuid.uuid4()),
             "type": "For.test",  # no need to extract, always the same
-            "command": node.__class__.__name__.lower()+" "+test_target+" in "+value_test+":"
+            "command": node.__class__.__name__.lower()
+            + " "
+            + test_target
+            + " in "
+            + value_test
+            + ":",
         }
         body = {
             "id": str(uuid.uuid4()),
             "type": "For.body",  # no need to extract, always the same
-            "value": value_body   # NESTED
+            "value": value_body,  # NESTED
         }
 
         json_objects.append(test)
@@ -283,7 +313,7 @@ class NodeToJSONConverter:
         data = {
             "id": str(uuid.uuid4()),
             "type": "Line",
-            "command": name+" "+type_text+" "+comparator
+            "command": name + " " + type_text + " " + comparator,
         }
 
         json_objects.append(data)
@@ -308,7 +338,7 @@ class NodeToJSONConverter:
         data = {
             "id": str(uuid.uuid4()),
             "type": "Line",
-            "command": left+" "+type_text+" "+right
+            "command": left + " " + type_text + " " + right,
         }
 
         json_objects.append(data)
@@ -349,12 +379,33 @@ class NodeToJSONConverter:
     def create_json_list(self, node):
 
         json_objects = []
+        elements = []
 
+        for i in range(len(node.elements)):
+            if (
+                node.elements[i].value.__class__.__name__ == "List"
+                or node.elements[i].value.__class__.__name__ == "Dict"
+            ):
+                customVisitor = CustomVisitor()
+                node.elements[i].value.visit(customVisitor)
+                elements.append(customVisitor.stack[0]["command"])
+            else:
+                elements.append(node.elements[i].value.value)
+
+        elements_as_string = "[" + ", ".join(elements) + "]"
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": elements_as_string,
+        }
+
+        json_objects.append(data)
         return json_objects
 
     # ------------------------------------ DICT ------------------------------------
     def create_json_dict(self, node):
-        
+
         json_objects = []
 
         return json_objects

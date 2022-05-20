@@ -273,3 +273,16 @@ def test_multiple_modules(executor: Executor):
 
     assert new_vars == {"a" : 4, "b" : 5, "c" : 6}
 
+
+def test_list_returns(executor: Executor):
+
+    command1 = b"list = [1, 2, 3]"
+    command2 = b"list2 = [1, [2, 3], 3]"
+
+    history = []
+    history.append(Base64Type(base64.b64encode(command1)))
+    history.append(Base64Type(base64.b64encode(command2)))
+
+    vars = executor.exec_command_history(history)
+
+    assert vars == {"list": [1, 2, 3], "list2": [1, [2, 3], 3]}
