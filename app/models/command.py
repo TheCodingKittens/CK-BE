@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from app.models.base64 import Base64Type
 from app.models.edge import Edge
-from app.models.node import Node
+from app.models.node import Node, NodeRead
 from app.models.variable import Variable
 from app.utils.config import settings
 from aredis_om.connections import get_redis_connection
@@ -55,4 +55,4 @@ class Command(BaseModel):
         title="The Data of the Command", index=True
     )
     edges: Optional[List[Edge]] = Field(title="The Edges of the Command")
-    nodes: Optional[List[Node]] = Field(title="The Nodes of the Command")
+    nodes: Optional[List[NodeRead]] = Field(title="The Nodes of the Command")
