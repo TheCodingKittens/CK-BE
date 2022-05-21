@@ -5,6 +5,7 @@ from app.models.base64 import Base64Type
 from app.models.command import Command
 from app.models.variable import Variable
 from app.services.node_to_json import CustomVisitor
+from fastapi import HTTPException
 
 """
 Class to parse incoming strings from the frontend
@@ -51,8 +52,8 @@ class Parser:
 
             return self.visitor.stack
 
-        except cst.ParserSyntaxError as e:
-            print("Error:", e)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail="Something went wrong while paring:\n"+str(e))
 
 
 # Example of how to Use the collector and transformer

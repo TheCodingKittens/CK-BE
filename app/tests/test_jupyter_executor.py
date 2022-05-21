@@ -95,6 +95,7 @@ else:
     history.append(Base64Type(base64.b64encode(b"3 + 5 + b")))
 
     nb = jupyterexecutor.create_notebook_from_history(history)
+    nb = jupyterexecutor.execute_notebook(nb)
     all_cells_output = jupyterexecutor.get_output_of_each_cell(nb)
 
     # one output for every cell (even if empty) = num of cells

@@ -2,6 +2,7 @@ from typing import List
 
 import nbformat as nbf
 from app.models.base64 import Base64Type
+from fastapi import HTTPException
 from nbconvert.preprocessors import ExecutePreprocessor
 
 
@@ -9,27 +10,18 @@ class ExecutorJuypter():
     def __init__(self):
         # create an ExecutePreprocessor
         self.ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
-        # create notebook
-        # self.nb_in = nbf.v4.new_notebook()
-        # self.cells = self.nb_in['cells']
-
 
     def create_cell(self, command: Base64Type):
         self.cells.append(nbf.v4.new_code_cell(command.decode_str()))
 
-
     def pre_process(self):
         return self.ep.preprocess(self.nb_in)
     
-
-    # method to create a new cell and run the notebook again
     def run_new_command(self, command: Base64Type):
         self.create_cell(command)
         self.nb_out = self.pre_process()
         return self.fetch_output()
 
-
-    # method to create a new notebook and run everything
     def run_notebook(self, commands: List[Base64Type]):
 
         # create new notebook
@@ -42,7 +34,6 @@ class ExecutorJuypter():
         self.nb_out = self.pre_process()
         return self.fetch_output()
 
-    
     def fetch_output(self):
         outputs = []
         for cell in self.nb_out[0]["cells"]:
@@ -55,7 +46,6 @@ class ExecutorJuypter():
         
         return outputs
 
-
     # ------------ CREATE A NOTEBOOK FROM A HISTORY OF COMMANDS -------------
     def create_notebook_from_history(self, commands: List[Base64Type]):
         nb_in = nbf.v4.new_notebook()
@@ -64,6 +54,15 @@ class ExecutorJuypter():
             nb_in['cells'].append(cell)
         
         return nb_in
+
+
+
+    # ------------ EXECUTE A GIVEN NOTEBOOK ------------
+    def execute_notebook(self, nb):
+        try:
+            return self.ep.preprocess(nb)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
 
     # ----- RUN NOTEBOOK FROM HISTORY AND NEW COMMAND. RETURNS OUTPUT OF NEW COMMAND -----
@@ -78,8 +77,12 @@ class ExecutorJuypter():
         # create a cell for the new command
         newCell = nbf.v4.new_code_cell(newCommand.decode_str())
         nb_in['cells'].append(newCell)
+
+        # execute the notebook
+        nb_out = self.execute_notebook(nb_in)
         
-        return self.get_output_of_last_cell(nb_in)
+        # get and return the outputs of the last cell
+        return self.get_output_of_last_cell(nb_out)
 
 
     # ----- RUN NOTEBOOK FROM HISTORY. RETURNS ALL OUTPUTS -----
@@ -90,14 +93,16 @@ class ExecutorJuypter():
         for command in commandHistory:
             cell = nbf.v4.new_code_cell(command.decode_str())
             nb_in['cells'].append(cell)
+
+        # execute the notebook
+        nb_out = self.execute_notebook(nb_in)
         
-        return self.get_output_of_each_cell(nb_in)
+        # get and return the outputs of each cell
+        return self.get_output_of_each_cell(nb_out)
 
 
     # -------------------- MAY BE USED FOR NEW COMMANDS ---------------------
-    def get_output_of_last_cell(self, notebook):
-        # execute the notebook
-        nb_out = self.ep.preprocess(notebook)
+    def get_output_of_last_cell(self, nb_out):
 
         # access the last cell
         last_cell = nb_out[0]["cells"][-1]
@@ -112,9 +117,7 @@ class ExecutorJuypter():
 
 
     # -------------------- MAY BE USED FOR EDITING NODES ---------------------
-    def get_output_of_each_cell(self, notebook):
-        # execute the notebook
-        nb_out = self.ep.preprocess(notebook)
+    def get_output_of_each_cell(self, nb_out):
 
         # create a list containing an entry for EVERY cell
         all_outputs = []
