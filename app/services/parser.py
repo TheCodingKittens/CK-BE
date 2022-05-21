@@ -53,7 +53,7 @@ class Parser:
             return self.visitor.stack
 
         except Exception as e:
-            raise HTTPException(status_code=400, detail="Something went wrong while paring:\n"+str(e))
+            raise HTTPException(status_code=400, detail="Something went wrong while paring: "+str(e))
 
 
 # Example of how to Use the collector and transformer
