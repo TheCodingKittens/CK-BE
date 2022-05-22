@@ -3,11 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from attr import validate
-
 from app.utils.config import settings
 from aredis_om.connections import get_redis_connection
 from aredis_om.model import Field, HashModel
+from attr import validate
 from pydantic import BaseModel, validator
 
 
@@ -19,7 +18,7 @@ class Node(HashModel):
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
-    id: Optional[str] = Field(title="The ID of the Node", index=True)
+    node_id: Optional[str] = Field(title="The ID of the Node", index=True)
     type: Optional[str] = Field(title="The Type of the Node")
     command: Optional[str] = Field(title="The Command")
 
@@ -36,7 +35,7 @@ class NodeRead(BaseModel):
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
-    id: Optional[str] = Field(title="The ID of the Node", index=True)
+    node_id: Optional[str] = Field(title="The ID of the Node", index=True)
     type: Optional[str] = Field(title="The Type of the Node")
     command: Optional[str] = Field(title="The Command")
     nodes: Optional[List[NodeRead]] = Field([], title="The Value of the Node")

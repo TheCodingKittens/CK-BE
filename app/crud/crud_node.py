@@ -17,21 +17,28 @@ class CRUDNode(CRUDBase[Node, Node, Node]):
         command_pk: str,
     ) -> List[Node]:
 
+        db_nodes = []
+
         for node in nodes:
             db_node = await self.create(
                 Node(
                     command_pk=command_pk,
                     parent_node_pk=parent_pk,
-                    id=node.get("id"),
+                    node_id=node.get("id"),
                     type=node.get("type"),
                     command=node.get("command"),
                 )
             )
 
+            db_nodes.append(db_node)
+
             if node.get("value"):
-                await self.create_bulk(
+                db_nested_nodes = await self.create_bulk(
                     node.get("value"), parent_pk=db_node.pk, command_pk=command_pk
                 )
+                db_nodes.extend(db_nested_nodes)
+
+        return db_nodes
 
     def get_parent(self, nodes: List[NodeRead], parent_pk: str) -> Optional[NodeRead]:
         for node in nodes:
