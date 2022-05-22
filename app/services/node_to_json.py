@@ -8,8 +8,6 @@ import libcst as cst
 """
 Class to visit all the nodes relevant for the project
 """
-
-
 class CustomVisitor(cst.CSTVisitor):
     def __init__(self):
         # store all the JSON content in a stack
@@ -59,6 +57,9 @@ class CustomVisitor(cst.CSTVisitor):
     def visit_Dict(self, node: "Dict") -> Optional[bool]:
         return self.visit_node(node)
 
+    def visit_Subscript(self, node: "Subscript") -> Optional[bool]:
+        return self.visit_node(node)
+
     def visit_Expr(self, node: "Expr") -> Optional[bool]:
         json_objects = self.nodeToJSONConverter.create_json(node)
         if not json_objects:
@@ -106,6 +107,8 @@ class NodeToJSONConverter:
             json_objects = self.create_json_dict(node)
         elif classname == "Expr":
             json_objects = self.create_json_value_check(node)
+        elif classname == "Subscript":
+            json_objects = self.create_json_subscript(node)
         else:
             print("ERROR: Unknown node type")
 
@@ -157,13 +160,16 @@ class NodeToJSONConverter:
 
                 if (
                     value.__class__.__name__ == "BinaryOperation"
+                    or value.__class__.__name__ == "BooleanOperation"
                     or value.__class__.__name__ == "Comparison"
+                    or value.__class__.__name__ == "Subscript"
                 ):
                     customVisitor = CustomVisitor()
                     value.visit(customVisitor)
                     var_value = customVisitor.stack[0]["command"]
                 else:
                     var_value = value.value
+
                 var_name = targets[0].target.value
 
                 data = {
@@ -324,7 +330,10 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        if node.left.__class__.__name__ == "BinaryOperation":
+        if (
+            node.left.__class__.__name__ == "BinaryOperation"
+            or node.left.__class__.__name__ == "Call"
+        ):
             customVisitor = CustomVisitor()
             node.left.visit(customVisitor)
             left = customVisitor.stack[0]["command"]
@@ -349,22 +358,31 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        type = node.func.value
+        if node.func.__class__.__name__ == "Name":
+            type = node.func.value
+        else:
+            type = node.func.value.value + "." + node.func.attr.value
+
         # args are empty
         if not node.args:
             value = ""
         else:
-            paramType = node.args[0].value.__class__.__name__
-            if (
-                paramType == "BinaryOperation"
-                or paramType == "BooleanOperation"
-                or paramType == "Comparison"
-            ):
-                customVisitor = CustomVisitor()
-                node.args[0].value.visit(customVisitor)
-                value = customVisitor.stack[0]["command"]
-            else:
-                value = node.args[0].value.value
+            value = []
+            for arg in node.args:
+                paramType = arg.value.__class__.__name__
+                if (
+                    paramType == "BinaryOperation"
+                    or paramType == "BooleanOperation"
+                    or paramType == "Comparison"
+                    or paramType == "Call"
+                    or paramType == "List"
+                ):
+                    customVisitor = CustomVisitor()
+                    arg.value.visit(customVisitor)
+                    value.append(customVisitor.stack[0]["command"])
+                else:
+                    value.append(arg.value.value)
+            value = ", ".join(value)
 
         data = {
             "id": str(uuid.uuid4()),
@@ -385,6 +403,7 @@ class NodeToJSONConverter:
             if (
                 node.elements[i].value.__class__.__name__ == "List"
                 or node.elements[i].value.__class__.__name__ == "Dict"
+                or node.elements[i].value.__class__.__name__ == "BinaryOperation"
             ):
                 customVisitor = CustomVisitor()
                 node.elements[i].value.visit(customVisitor)
@@ -423,6 +442,48 @@ class NodeToJSONConverter:
             "id": str(uuid.uuid4()),
             "type": "Line",
             "command": node.value.value,
+        }
+
+        json_objects.append(data)
+        return json_objects
+
+    # ------------------------------------ SUBSCRIPT ------------------------------------
+    def create_json_subscript(self, node):
+
+        json_objects = []
+
+        element = node.value.value
+        content_class = node.slice[0].slice
+
+        if content_class.__class__.__name__ == "Index":
+            if content_class.value.__class__.__name__ == "BinaryOperation":
+                customVisitor = CustomVisitor()
+                content_class.value.visit(customVisitor)
+                content = customVisitor.stack[0]["command"]
+            else:
+                content = content_class.value.value
+
+        elif content_class.__class__.__name__ == "Slice":
+            lower = (
+                str(content_class.lower.value) if content_class.lower != None else ""
+            )
+            upper = (
+                str(content_class.upper.value) if content_class.upper != None else ""
+            )
+            step = str(content_class.step.value) if content_class.step != None else ""
+            first_colon = (
+                ":" if content_class.first_colon.__class__.__name__ == "Colon" else ""
+            )
+            second_colon = (
+                ":" if content_class.second_colon.__class__.__name__ == "Colon" else ""
+            )
+
+            content = lower + first_colon + upper + second_colon + step
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": element + "[" + content + "]",
         }
 
         json_objects.append(data)
