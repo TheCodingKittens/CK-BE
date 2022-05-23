@@ -74,6 +74,8 @@ class CustomVisitor(cst.CSTVisitor):
 class NodeToJSONConverter:
     def __init__(self):
         self.nodes = []
+        self.revisitable_nodes = ["BinaryOperation", "BooleanOperation", "Comparison", "Call",
+            "Subscript", "List", "Dict"]
 
     @staticmethod
     def extract_field(string, start_string, end_string):
@@ -113,6 +115,19 @@ class NodeToJSONConverter:
             print("ERROR: Unknown node type")
 
         return json_objects
+    
+
+    # ---------------------- REVISIT NODES for a command ------------------
+    def revisit_for_command(self, node):
+        customVisitor = CustomVisitor()
+        node.visit(customVisitor)
+        return customVisitor.stack[0]["command"]
+
+    # ---------------------- REVISIT NODES for nested json ------------------
+    def revisit(self, node):
+        customVisitor = CustomVisitor()
+        node.visit(customVisitor)
+        return customVisitor.stack
 
     # ---------------------------- ASSIGN --------------------------
     def create_json_object_assign(self, node):
@@ -120,12 +135,9 @@ class NodeToJSONConverter:
         value = node.value
         json_objects = []
 
-        # in case of creating a list, recursively visit the "List" node
-        if value.__class__.__name__ == "List":
-            customVisitor = CustomVisitor()
-            value.visit(customVisitor)
-            var_value = customVisitor.stack[0]["command"]
-            # var_value = "some list"
+        # in case of creating a list or dict, recursively visit the respective node
+        if value.__class__.__name__ == "List" or value.__class__.__name__ == "Dict":
+            var_value = self.revisit_for_command(value)
             var_name = targets[0].target.value
 
             data = {
@@ -136,7 +148,8 @@ class NodeToJSONConverter:
             json_objects.append(data)
 
         else:
-            # GRIGOR: Multiple assignments on one line, e.g. a,b=2,3
+            # GRIGOR: Multiple assignments on one line, e.g. a, b = 2, 3
+            # TODO simplify
             if hasattr(value, "elements"):
                 value_elements = value.elements
                 target_elements = targets[0].target.elements
@@ -158,15 +171,8 @@ class NodeToJSONConverter:
             # GRIGOR: One assignment only, e.g. a=3 / a=3+3
             else:
 
-                if (
-                    value.__class__.__name__ == "BinaryOperation"
-                    or value.__class__.__name__ == "BooleanOperation"
-                    or value.__class__.__name__ == "Comparison"
-                    or value.__class__.__name__ == "Subscript"
-                ):
-                    customVisitor = CustomVisitor()
-                    value.visit(customVisitor)
-                    var_value = customVisitor.stack[0]["command"]
+                if value.__class__.__name__ in self.revisitable_nodes:
+                    var_value = self.revisit_for_command(value)
                 else:
                     var_value = value.value
 
@@ -188,13 +194,11 @@ class NodeToJSONConverter:
         json_objects = []
 
         left = node.target.value
-        if node.value.__class__.__name__ == "BinaryOperation":
-            customVisitor = CustomVisitor()
-            node.value.visit(customVisitor)
-            right = customVisitor.stack[0]["command"]
+        if node.value.__class__.__name__ in self.revisitable_nodes:
+            right = self.revisit_for_command(node.value)
         else:
             right = node.value.value
-        type = node.operator.__class__.__name__
+
         type_text = node.operator._get_token()
 
         data = {
@@ -218,20 +222,14 @@ class NodeToJSONConverter:
         if test.__class__.__name__ == "Name":
             value_test = test.value
         else:
-            # recursive calls to parse the test and body sections
-            customVisitor = CustomVisitor()
-            test.visit(customVisitor)
-            value_test = customVisitor.stack[0]["command"]
+            value_test = self.revisit_for_command(test)
 
-        customVisitor = CustomVisitor()
-        body.visit(customVisitor)
-        value_body = customVisitor.stack
+        value_body = self.revisit(body)
 
         # For the If's, also include the else (if there) - with a recursive call
         if node.__class__.__name__ == "If" and elseNode is not None:
-            customVisitor = CustomVisitor()
-            visited_else = elseNode.visit(customVisitor)
-            value_else = customVisitor.stack
+            value_else = self.revisit(elseNode)
+
             elseNode = {
                 "id": str(uuid.uuid4()),
                 "type": "If.else",  # no need to extract, always the same
@@ -270,16 +268,12 @@ class NodeToJSONConverter:
         body = node.body
 
         # recursive calls to parse the test and body sections
-        if test_function.__class__.__name__ == "Call":
-            customVisitor = CustomVisitor()
-            test_function.visit(customVisitor)
-            value_test = customVisitor.stack[0]["command"]
+        if test_function.__class__.__name__ in self.revisitable_nodes:
+            value_test = self.revisit_for_command(test_function)
         else:
             value_test = test_function.value
 
-        customVisitor = CustomVisitor()
-        body.visit(customVisitor)
-        value_body = customVisitor.stack
+        value_body = self.revisit(body)
 
         test = {
             "id": str(uuid.uuid4()),
@@ -307,13 +301,13 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        name = node.left.value
+        # TODO make more flexible
+
+        if node.left.__class__.__name__ in self.revisitable_nodes:
+            name = self.revisit_for_command(node.left)
+        else:
+            name = node.left.value
         comparator = node.comparisons[0].comparator.value
-        comparison_type = (
-            node.__class__.__name__
-            + "."
-            + node.children[1].children[0].__class__.__name__
-        )
         type_text = node.comparisons[0].operator._get_token()
 
         data = {
@@ -330,18 +324,16 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        if (
-            node.left.__class__.__name__ == "BinaryOperation"
-            or node.left.__class__.__name__ == "Call"
-        ):
-            customVisitor = CustomVisitor()
-            node.left.visit(customVisitor)
-            left = customVisitor.stack[0]["command"]
+        if node.left.__class__.__name__ in self.revisitable_nodes:
+            left = self.revisit_for_command(node.left)
         else:
             left = node.left.value
 
-        right = node.right.value
-        type = node.operator.__class__.__name__
+        if node.right.__class__.__name__ in self.revisitable_nodes:
+            right = self.revisit_for_command(node.right)
+        else:
+            right = node.right.value
+
         type_text = node.operator._get_token()
 
         data = {
@@ -370,16 +362,8 @@ class NodeToJSONConverter:
             value = []
             for arg in node.args:
                 paramType = arg.value.__class__.__name__
-                if (
-                    paramType == "BinaryOperation"
-                    or paramType == "BooleanOperation"
-                    or paramType == "Comparison"
-                    or paramType == "Call"
-                    or paramType == "List"
-                ):
-                    customVisitor = CustomVisitor()
-                    arg.value.visit(customVisitor)
-                    value.append(customVisitor.stack[0]["command"])
+                if paramType in self.revisitable_nodes:
+                    value.append(self.revisit_for_command(arg.value))
                 else:
                     value.append(arg.value.value)
             value = ", ".join(value)
@@ -400,14 +384,8 @@ class NodeToJSONConverter:
         elements = []
 
         for i in range(len(node.elements)):
-            if (
-                node.elements[i].value.__class__.__name__ == "List"
-                or node.elements[i].value.__class__.__name__ == "Dict"
-                or node.elements[i].value.__class__.__name__ == "BinaryOperation"
-            ):
-                customVisitor = CustomVisitor()
-                node.elements[i].value.visit(customVisitor)
-                elements.append(customVisitor.stack[0]["command"])
+            if node.elements[i].value.__class__.__name__ in self.revisitable_nodes:
+                elements.append(self.revisit_for_command(node.elements[i].value))
             else:
                 elements.append(node.elements[i].value.value)
 
@@ -432,8 +410,7 @@ class NodeToJSONConverter:
     # ------------------------------------ EXPR ------------------------------------
     def create_json_value_check(self, node):
 
-        # return false in case any other Expression than "Name" is found (ignore the Expr-node)
-        if node.value.__class__.__name__ != "Name":
+        if node.value.__class__.__name__ in self.revisitable_nodes:
             return False
 
         json_objects = []
@@ -456,10 +433,8 @@ class NodeToJSONConverter:
         content_class = node.slice[0].slice
 
         if content_class.__class__.__name__ == "Index":
-            if content_class.value.__class__.__name__ == "BinaryOperation":
-                customVisitor = CustomVisitor()
-                content_class.value.visit(customVisitor)
-                content = customVisitor.stack[0]["command"]
+            if content_class.value.__class__.__name__ in self.revisitable_nodes:
+                content = self.revisit(content_class.value)
             else:
                 content = content_class.value.value
 
