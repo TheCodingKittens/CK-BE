@@ -8,6 +8,8 @@ import libcst as cst
 """
 Class to visit all the nodes relevant for the project
 """
+
+
 class CustomVisitor(cst.CSTVisitor):
     def __init__(self):
         # store all the JSON content in a stack
@@ -74,13 +76,15 @@ class CustomVisitor(cst.CSTVisitor):
 class NodeToJSONConverter:
     def __init__(self):
         self.nodes = []
-        self.revisitable_nodes = ["BinaryOperation", "BooleanOperation", "Comparison", "Call",
-            "Subscript", "List", "Dict"]
-
-    @staticmethod
-    def extract_field(string, start_string, end_string):
-        pattern = "{0}(.*?){1}".format(start_string, end_string)
-        return re.search(pattern, string).group(1)
+        self.revisitable_nodes = [
+            "BinaryOperation",
+            "BooleanOperation",
+            "Comparison",
+            "Call",
+            "Subscript",
+            "List",
+            "Dict",
+        ]
 
     def create_json(self, node):
 
@@ -115,7 +119,6 @@ class NodeToJSONConverter:
             print("ERROR: Unknown node type")
 
         return json_objects
-    
 
     # ---------------------- REVISIT NODES for a command ------------------
     def revisit_for_command(self, node):
@@ -135,9 +138,36 @@ class NodeToJSONConverter:
         value = node.value
         json_objects = []
 
-        # in case of creating a list or dict, recursively visit the respective node
-        if value.__class__.__name__ == "List" or value.__class__.__name__ == "Dict":
-            var_value = self.revisit_for_command(value)
+        if (
+            hasattr(value, "elements")
+            and value.__class__.__name__ not in self.revisitable_nodes
+        ):
+            vals = []
+            targs = []
+
+            for element in value.elements:
+                if element.value.__class__.__name__ in self.revisitable_nodes:
+                    vals.append(self.revisit_for_command(element))
+                else:
+                    vals.append(element.value.value)
+            for element in targets[0].target.elements:
+                targs.append(element.value.value)
+            values = ", ".join(vals)
+            targets = ", ".join(targs)
+
+            data = {
+                "id": str(uuid.uuid4()),
+                "type": "Line",
+                "command": targets + " = " + values,
+            }
+
+        else:
+
+            if value.__class__.__name__ in self.revisitable_nodes:
+                var_value = self.revisit_for_command(value)
+            else:
+                var_value = value.value
+
             var_name = targets[0].target.value
 
             data = {
@@ -145,46 +175,8 @@ class NodeToJSONConverter:
                 "type": "Line",
                 "command": var_name + " = " + var_value,
             }
-            json_objects.append(data)
 
-        else:
-            # GRIGOR: Multiple assignments on one line, e.g. a, b = 2, 3
-            # TODO simplify
-            if hasattr(value, "elements"):
-                value_elements = value.elements
-                target_elements = targets[0].target.elements
-
-                for (value_element, target_element) in zip(
-                    value_elements, target_elements
-                ):
-                    var_value = self.extract_field(str(value_element), "value='", "',")
-                    var_name = self.extract_field(str(target_element), "value='", "',")
-
-                    data = {
-                        "id": str(uuid.uuid4()),
-                        "type": "Line",
-                        "command": var_name + " = " + var_value,
-                    }
-
-                    json_objects.append(data)
-
-            # GRIGOR: One assignment only, e.g. a=3 / a=3+3
-            else:
-
-                if value.__class__.__name__ in self.revisitable_nodes:
-                    var_value = self.revisit_for_command(value)
-                else:
-                    var_value = value.value
-
-                var_name = targets[0].target.value
-
-                data = {
-                    "id": str(uuid.uuid4()),
-                    "type": "Line",
-                    "command": var_name + " = " + var_value,
-                }
-
-                json_objects.append(data)
+        json_objects.append(data)
 
         return json_objects
 

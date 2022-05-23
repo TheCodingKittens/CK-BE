@@ -65,35 +65,44 @@ def test_assign(parser: Parser):
 
     command_1 = """a = 3"""
     command_2 = """a,b = 4,c"""
+    command_3 = """a, b, c = [2, True, [False, 4], 0], 5, False"""
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
 
     assert command1_parsed[0]["type"] == "Line"
     assert command1_parsed[0]["command"] == "a = 3"
     assert len(command1_parsed) == 1
 
     assert command2_parsed[0]["type"] == "Line"
-    assert command2_parsed[0]["command"] == "a = 4"
+    assert command2_parsed[0]["command"] == "a, b = 4, c"
+    assert len(command2_parsed) == 1
 
-    assert command2_parsed[1]["type"] == "Line"
-    assert command2_parsed[1]["command"] == "b = c"
-    assert len(command2_parsed) == 2
+    assert command3_parsed[0]["type"] == "Line"
+    assert (
+        command3_parsed[0]["command"] == "a, b, c = [2, True, [False, 4], 0], 5, False"
+    )
+    assert len(command3_parsed) == 1
 
 
 def test_aug_assign(parser: Parser):
 
     command_1 = """a += 7"""
     command_2 = """b *= 2"""
+    command_3 = """b -= [3, 4]"""
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
 
     assert command1_parsed[0]["type"] == "Line"
     assert command1_parsed[0]["command"] == "a += 7"
@@ -102,6 +111,10 @@ def test_aug_assign(parser: Parser):
     assert command2_parsed[0]["type"] == "Line"
     assert command2_parsed[0]["command"] == "b *= 2"
     assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "b -= [3, 4]"
+    assert len(command3_parsed) == 1
 
 
 def test_assign_binary(parser: Parser):
@@ -310,7 +323,7 @@ def test_list(parser: Parser):
 def test_list_assign(parser: Parser):
 
     command_1 = "a = [1, 2, 3]"
-    command_2 = "c = [\"Hey\", True, 2]"
+    command_2 = 'c = ["Hey", True, 2]'
     command_3 = "d = []"
 
     byte_command_1 = create_bytecode(command_1)
@@ -326,7 +339,7 @@ def test_list_assign(parser: Parser):
     assert len(command1_parsed) == 1
 
     assert command2_parsed[0]["type"] == "Line"
-    assert command2_parsed[0]["command"] == "c = [\"Hey\", True, 2]"
+    assert command2_parsed[0]["command"] == 'c = ["Hey", True, 2]'
     assert len(command2_parsed) == 1
 
     assert command3_parsed[0]["type"] == "Line"
@@ -366,3 +379,59 @@ def test_nested_lists_assign(parser: Parser):
     assert command4_parsed[0]["type"] == "Line"
     assert command4_parsed[0]["command"] == "z = [a, [b, c, [d, e]], f]"
     assert len(command4_parsed) == 1
+
+
+def test_list_slicing(parser: Parser):
+    command_1 = "a[1:]"
+    command_2 = "b = c[1:7:3]"
+    command_3 = "c[::3]"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "a[1:]"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "b = c[1:7:3]"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "c[::3]"
+    assert len(command3_parsed) == 1
+
+
+def test_node_combinations(parser: Parser):
+    command_1 = "123"
+    command_2 = "'hey'"
+    command_3 = """if a % 2 == 0:
+    print(a)"""
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "123"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "'hey'"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "If.test"
+    assert command3_parsed[0]["command"] == "if a % 2 == 0:"
+    assert command3_parsed[1]["type"] == "If.body"
+    assert command3_parsed[1]["value"][0]["type"] == "Line"
+    assert command3_parsed[1]["value"][0]["command"] == "print(a)"
+    assert len(command3_parsed) == 2
