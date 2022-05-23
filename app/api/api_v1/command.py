@@ -5,15 +5,18 @@ from typing import List
 
 # CRUD operations for the Command model
 from app import crud
+
 # Models
 from app.models.command import Command, CommandCreate, UserInput
 from app.models.edge import Edge
 from app.models.node import Node
 from app.models.variable import Variable
+
 # Services
 from app.services.edge_creator import EdgeCreator
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
+
 # Fastapi Dependencies
 from app.services.parser import Parser
 from aredis_om.model import NotFoundError
@@ -77,17 +80,21 @@ async def save_command(
 
     # create and save variables
     for key, item in new_variables.items():
+        type = "general"
         if isinstance(item, list):
             list_elements = []
             for el in item:
                 if isinstance(el, str):
-                    list_elements.append("\""+el+"\"")
+                    list_elements.append('"' + el + '"')
                 else:
                     list_elements.append(str(el))
             item = "[" + ", ".join(list_elements) + "]"
+            type = "list"
         elif isinstance(item, dict):
             item = json.dumps(item)
+            type = "dict"
         await crud.variable.create(
+            # TODO add the type
             Variable(command_pk=db_command.pk, var_name=key, value=item)
         )
 
