@@ -1,3 +1,4 @@
+import json
 from doctest import OutputChecker
 from platform import node
 from typing import List
@@ -76,6 +77,16 @@ async def save_command(
 
     # create and save variables
     for key, item in new_variables.items():
+        if isinstance(item, list):
+            list_elements = []
+            for el in item:
+                if isinstance(el, str):
+                    list_elements.append("\""+el+"\"")
+                else:
+                    list_elements.append(str(el))
+            item = "[" + ", ".join(list_elements) + "]"
+        elif isinstance(item, dict):
+            item = json.dumps(item)
         await crud.variable.create(
             Variable(command_pk=db_command.pk, var_name=key, value=item)
         )
@@ -129,10 +140,8 @@ async def get_command(pk: str, request: Request, response: Response):
 @router.put("/{pk}", response_model=Command)
 async def put_command(pk: str, command: Command, response: Response) -> Command:
 
-
     # 2. Fetch ALL session wrappers ✅
     # session_wrappers = await crud.command.read_all_by_token(userinput.token)
-
 
     # 3. Fetch the modified CommandWrapper given the CommandWrapper ID ✅
     # for i in range(len(session_wrappers)):
@@ -140,11 +149,9 @@ async def put_command(pk: str, command: Command, response: Response) -> Command:
     #         edit_index = i
     #         modified_wrapper = session_wrappers[i]
 
-
     # 4. Create a list of successors and predecessor (also needed later on) ✅
     # predecessors = session_wrappers[0:edit_index]
     # successors = session_wrappers[edit_index+1:]
-
 
     # 5. Create a updated json tree ✅
     # current_nodes = modified_wrapper.nodes
@@ -155,17 +162,14 @@ async def put_command(pk: str, command: Command, response: Response) -> Command:
     # )
     # new_nodes = nodeEditor.json
 
-
     # 6. Create the updated command property of the CommandWrapper ✅
     # jsonToSourceCodeConverter = JSONToSourceCodeConverter(new_nodes)
     # new_commandwrapper_command = jsonToSourceCodeConverter.generate_source_code()
-
 
     # 7. Recreate edges (again, just temporarily save them) ✅
     # edgeCreator = EdgeCreator(json_data=new_nodes)
     # edgeCreator.create_edges()
     # new_edges = edgeCreator.edges
-
 
     # 8. Fetch the state of the variables from the previous commandwrapper (if there is one) ✅
     # previous_wrapper = predecessors[-1] if predecessors else None
@@ -175,7 +179,6 @@ async def put_command(pk: str, command: Command, response: Response) -> Command:
     #         value = int(x.value) if x.value.isnumeric() else x.value
     #         latest_variables[x.var_name] = value
 
-
     # 9. Call the exec function for the temporary (new) command of the CommandWrapper ✅
     # try:
     #     new_variables = executor.exec_module_from_history(
@@ -184,7 +187,6 @@ async def put_command(pk: str, command: Command, response: Response) -> Command:
     #     )
     # except Exception as e:
     #     return {"error": str(e)}
-
 
     # 10. Now for all successor CommandWrappers, execute again and store the vars in a list ✅
     # temp_vars = [] # create a list to store the variables for each successor wrapper temporarily
@@ -200,7 +202,6 @@ async def put_command(pk: str, command: Command, response: Response) -> Command:
     # except Exception as e:
     #     return {"error": str(e)}
 
-
     # 11. Now combine ALL commands (including the updated one) and execute them in a Jupyter notebook to receive the outputs ✅
     # predecessor_commands = [wrapper.command for wrapper in predecessors]
     # successor_commands = [wrapper.command for wrapper in successors]
@@ -211,21 +212,17 @@ async def put_command(pk: str, command: Command, response: Response) -> Command:
     #     return {"error": str(e)}
     # relevant_outputs = all_outputs[-(1+len(successors)):] # fetch the outputs for the modified_wrapper and all successors
 
-
     # 12. NO ERROR WAS THROWN SO FAR -> Create new CommandWrappers and delete the old ones
     # Start with the initially modified one:
     # TODO CREATE wrapper WITH "new_nodes", "new_commandwrapper_command", "new_edges", "new_variables", "relevant_outputs[0]" (CREATED_AT, PK and TOKEN NEED TO STAY THE SAME)
     # TODO REPLACE "modified_wrapper" with the newly created wrapper
-
 
     # and then all the successors (CREATE NEW ONES, REPLACING THE VARIABLES AND OUTPUTS, REST SHOULD STAY THE SAME)
     # for i in range(len(successors)):
     #     TODO CREATE NEW WRAPPER with "temp_vars[i]" for variables, "relevant_outputs[i+1]" for outputs and ALL OTHER PARAMETERS FROM successors[i] (NEED TO STAY THE SAME)
     #     TODO REPLACE successors[i] with the newly created wrapper
 
-
     # 13. SAVE ALL THE NEWLY CREATED WRAPPERS AND DELETE THE OLD ONES
-
 
     # 14. RETURN THE HISTORY OF ALL SESSION WRAPPERS
 
