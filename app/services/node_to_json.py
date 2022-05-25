@@ -161,9 +161,10 @@ class NodeToJSONConverter:
             target_value = targets[0].target.value
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": target_value + " = " + var_value,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -184,9 +185,10 @@ class NodeToJSONConverter:
         type_text = node.operator._get_token()
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": left + " " + type_text + " " + right,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -213,9 +215,9 @@ class NodeToJSONConverter:
             value_else = self.revisit(elseNode)
 
             elseNode = {
-                "id": str(uuid.uuid4()),
+                "node_id": str(uuid.uuid4()),
                 "type": "If.else",  # no need to extract, always the same
-                "value": value_else,  # NESTED
+                "nodes": value_else,  # NESTED
                 "command": "else:",
             }
 
@@ -223,14 +225,15 @@ class NodeToJSONConverter:
         type_body = node.__class__.__name__ + "." + "body"
 
         test = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": type_test,
             "command": node.__class__.__name__.lower() + " " + value_test + ":",
+            "nodes": [],
         }
         body = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": type_body,
-            "value": value_body,  # NESTED
+            "nodes": value_body,  # NESTED
         }
 
         json_objects.append(test)
@@ -262,7 +265,7 @@ class NodeToJSONConverter:
         value_body = self.revisit(body)
 
         test = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "For.test",  # no need to extract, always the same
             "command": node.__class__.__name__.lower()
             + " "
@@ -270,11 +273,12 @@ class NodeToJSONConverter:
             + " in "
             + test_function
             + ":",
+            "nodes": [],
         }
         body = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "For.body",  # no need to extract, always the same
-            "value": value_body,  # NESTED
+            "nodes": value_body,  # NESTED
         }
 
         json_objects.append(test)
@@ -301,9 +305,10 @@ class NodeToJSONConverter:
                 command += " " + comparator.comparator.value
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": name + command,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -327,9 +332,10 @@ class NodeToJSONConverter:
         type_text = node.operator._get_token()
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": left + " " + type_text + " " + right,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -347,9 +353,10 @@ class NodeToJSONConverter:
             value = node.expression.value
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": operator + value,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -379,9 +386,10 @@ class NodeToJSONConverter:
             value = ", ".join(value)
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": type + "(" + value + ")",
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -402,9 +410,10 @@ class NodeToJSONConverter:
         elements_as_string = "[" + ", ".join(elements) + "]"
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": elements_as_string,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -434,9 +443,10 @@ class NodeToJSONConverter:
         elements_as_string = "{" + ", ".join(elements) + "}"
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": elements_as_string,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -451,9 +461,10 @@ class NodeToJSONConverter:
         json_objects = []
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": node.value.value,
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -510,9 +521,10 @@ class NodeToJSONConverter:
             content = lower + first_colon + upper + second_colon + step
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": element + "[" + content + "]",
+            "nodes": [],
         }
 
         json_objects.append(data)
@@ -533,9 +545,10 @@ class NodeToJSONConverter:
         elements_as_string = "(" + ", ".join(elements) + ")"
 
         data = {
-            "id": str(uuid.uuid4()),
+            "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": elements_as_string,
+            "nodes": [],
         }
 
         json_objects.append(data)

@@ -500,8 +500,8 @@ def test_node_combinations(parser: Parser):
     assert command3_parsed[0]["type"] == "If.test"
     assert command3_parsed[0]["command"] == "if a % 2 == 0:"
     assert command3_parsed[1]["type"] == "If.body"
-    assert command3_parsed[1]["value"][0]["type"] == "Line"
-    assert command3_parsed[1]["value"][0]["command"] == "print(a)"
+    assert command3_parsed[1]["nodes"][0]["type"] == "Line"
+    assert command3_parsed[1]["nodes"][0]["command"] == "print(a)"
     assert len(command3_parsed) == 2
 
     assert command4_parsed[0]["type"] == "Line"

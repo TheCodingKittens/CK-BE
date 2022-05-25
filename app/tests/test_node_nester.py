@@ -1,4 +1,3 @@
-
 import json
 
 from app.services.node_nester import NodeNester
@@ -23,7 +22,7 @@ def test_node_nesting():
             "id": "",
             "type": "Line",
             "command": "a = 3",
-            "value": ""
+            "nodes": "",
         },
         {
             "pk": "2",
@@ -32,7 +31,7 @@ def test_node_nesting():
             "id": "",
             "type": "If.test",
             "command": "if a == 3:",
-            "value": ""
+            "nodes": "",
         },
         {
             "pk": "3",
@@ -41,7 +40,7 @@ def test_node_nesting():
             "id": "",
             "type": "If.body",
             "command": "",
-            "value": ""
+            "nodes": "",
         },
         {
             "pk": "4",
@@ -51,7 +50,7 @@ def test_node_nesting():
             "id": "",
             "type": "If.test",
             "command": "if a < 4:",
-            "value": ""
+            "nodes": "",
         },
         {
             "pk": "5",
@@ -61,7 +60,7 @@ def test_node_nesting():
             "id": "",
             "type": "If.body",
             "command": "",
-            "value": ""
+            "nodes": "",
         },
         {
             "pk": "6",
@@ -70,8 +69,8 @@ def test_node_nesting():
             "created_at": "2022-05-19T21:14:33.713855",
             "id": "",
             "type": "Line",
-            "command": "print(\"InnerIf\")",
-            "value": ""
+            "command": 'print("InnerIf")',
+            "nodes": "",
         },
         {
             "pk": "7",
@@ -80,8 +79,8 @@ def test_node_nesting():
             "created_at": "2022-05-19T21:14:33.714921",
             "id": "",
             "type": "Line",
-            "command": "print(\"OuterIf\")",
-            "value": ""
+            "command": 'print("OuterIf")',
+            "nodes": "",
         },
         {
             "pk": "8",
@@ -90,8 +89,8 @@ def test_node_nesting():
             "created_at": "2022-05-19T21:14:33.715929",
             "id": "",
             "type": "Line",
-            "command": "print(\"RANDOM\")",
-            "value": ""
+            "command": 'print("RANDOM")',
+            "nodes": "",
         },
         {
             "pk": "9",
@@ -99,21 +98,21 @@ def test_node_nesting():
             "created_at": "2022-05-19T21:14:33.717036",
             "id": "",
             "type": "Line",
-            "command": "print(\"Base\")",
-            "value": ""
-        }
+            "command": 'print("Base")',
+            "nodes": "",
+        },
     ]
 
     node_nester = NodeNester(dummy_nodes)
     new_nodes = node_nester.nest_nodes()
     print(json.dumps(new_nodes, sort_keys=False, indent=4))
 
-    assert new_nodes[0]["value"] == ""
-    assert new_nodes[1]["value"] == ""
-    assert len(new_nodes[2]["value"]) == 4   # If.body has 4 children
-    assert new_nodes[2]["value"][0]["value"] == ""
-    assert len(new_nodes[2]["value"][1]["value"]) == 1   # If.body has 1 child
-    assert new_nodes[2]["value"][1]["value"][0]["value"] == ""
-    assert new_nodes[2]["value"][2]["value"] == ""
-    assert new_nodes[2]["value"][3]["value"] == ""
-    assert new_nodes[3]["value"] == ""
+    assert new_nodes[0]["nodes"] == ""
+    assert new_nodes[1]["nodes"] == ""
+    assert len(new_nodes[2]["nodes"]) == 4  # If.body has 4 children
+    assert new_nodes[2]["nodes"][0]["nodes"] == ""
+    assert len(new_nodes[2]["nodes"][1]["nodes"]) == 1  # If.body has 1 child
+    assert new_nodes[2]["nodes"][1]["nodes"][0]["nodes"] == ""
+    assert new_nodes[2]["nodes"][2]["nodes"] == ""
+    assert new_nodes[2]["nodes"][3]["nodes"] == ""
+    assert new_nodes[3]["nodes"] == ""

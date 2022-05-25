@@ -24,7 +24,7 @@ class CRUDNode(CRUDBase[Node, Node, Node]):
                 Node(
                     command_pk=command_pk,
                     parent_node_pk=parent_pk,
-                    node_id=node.get("id"),
+                    node_id=node.get("node_id"),
                     type=node.get("type"),
                     command=node.get("command"),
                 )
@@ -32,9 +32,9 @@ class CRUDNode(CRUDBase[Node, Node, Node]):
 
             db_nodes.append(db_node)
 
-            if node.get("value"):
+            if node.get("nodes"):
                 db_nested_nodes = await self.create_bulk(
-                    node.get("value"), parent_pk=db_node.pk, command_pk=command_pk
+                    node.get("nodes"), parent_pk=db_node.pk, command_pk=command_pk
                 )
                 db_nodes.extend(db_nested_nodes)
 
