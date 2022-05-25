@@ -141,14 +141,17 @@ def test_comparison(parser: Parser):
     command_1 = """a == 3"""
     command_2 = """b < 5"""
     command_3 = """c >= f"""
+    command_4 = """a == b == -c != d"""
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
     byte_command_3 = create_bytecode(command_3)
+    byte_command_4 = create_bytecode(command_4)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
     command3_parsed = parser.parse_module(byte_command_3)
+    command4_parsed = parser.parse_module(byte_command_4)
 
     assert command1_parsed[0]["type"] == "Line"
     assert command1_parsed[0]["command"] == "a == 3"
@@ -161,6 +164,10 @@ def test_comparison(parser: Parser):
     assert command3_parsed[0]["type"] == "Line"
     assert command3_parsed[0]["command"] == "c >= f"
     assert len(command3_parsed) == 1
+
+    assert command4_parsed[0]["type"] == "Line"
+    assert command4_parsed[0]["command"] == "a == b == -c != d"
+    assert len(command4_parsed) == 1
 
 
 def test_boolean_operation(parser: Parser):
@@ -222,6 +229,33 @@ def test_binary_operation(parser: Parser):
     assert command5_parsed[0]["type"] == "Line"
     assert command5_parsed[0]["command"] == "1 + 1 + b + c - 2"
     assert len(command5_parsed) == 1
+
+
+def test_unary_operations(parser: Parser):
+
+    command_1 = "-3"
+    command_2 = "list[2:4:-1]"
+    command_3 = "print(-4)"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "-3"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "list[2:4:-1]"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "print(-4)"
+    assert len(command3_parsed) == 1
 
 
 def test_print(parser: Parser):

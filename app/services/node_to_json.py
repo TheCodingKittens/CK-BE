@@ -50,6 +50,9 @@ class CustomVisitor(cst.CSTVisitor):
     def visit_BinaryOperation(self, node: "BinaryOperation") -> Optional[bool]:
         return self.visit_node(node)
 
+    def visit_UnaryOperation(self, node: "UnaryOperation") -> Optional[bool]:
+        return self.visit_node(node)
+
     def visit_Call(self, node: "Call") -> Optional[bool]:
         return self.visit_node(node)
 
@@ -82,6 +85,7 @@ class NodeToJSONConverter:
         self.revisitable_nodes = [
             "BinaryOperation",
             "BooleanOperation",
+            "UnaryOperation",
             "Comparison",
             "Call",
             "Subscript",
@@ -107,6 +111,8 @@ class NodeToJSONConverter:
             json_objects = self.create_json_comparison(node)
         elif classname == "BooleanOperation" or classname == "BinaryOperation":
             json_objects = self.create_json_boolean_binary_operation(node)
+        elif classname == "UnaryOperation":
+            json_objects = self.create_json_unary_operation(node)
         elif classname == "For":
             json_objects = self.create_json_for(node)
         elif classname == "Call":
@@ -281,19 +287,23 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        # TODO make more flexible
-
         if node.left.__class__.__name__ in self.revisitable_nodes:
             name = self.revisit_for_command(node.left)
         else:
             name = node.left.value
-        comparator = node.comparisons[0].comparator.value
-        type_text = node.comparisons[0].operator._get_token()
+
+        command = ""
+        for comparator in node.comparisons:
+            command += " " + comparator.operator._get_token()
+            if comparator.comparator.__class__.__name__ in self.revisitable_nodes:
+                command += " " + self.revisit_for_command(comparator)
+            else:
+                command += " " + comparator.comparator.value
 
         data = {
             "id": str(uuid.uuid4()),
             "type": "Line",
-            "command": name + " " + type_text + " " + comparator,
+            "command": name + command,
         }
 
         json_objects.append(data)
@@ -320,6 +330,26 @@ class NodeToJSONConverter:
             "id": str(uuid.uuid4()),
             "type": "Line",
             "command": left + " " + type_text + " " + right,
+        }
+
+        json_objects.append(data)
+        return json_objects
+
+    # ------------------------------ UNARY OPERATION ------------------------------
+    def create_json_unary_operation(self, node):
+
+        json_objects = []
+        operator = node.operator._get_token()
+
+        if node.expression.__class__.__name__ in self.revisitable_nodes:
+            value = self.revisit_for_command(node.expression)
+        else:
+            value = node.expression.value
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": operator + value,
         }
 
         json_objects.append(data)
@@ -444,16 +474,35 @@ class NodeToJSONConverter:
                 content = content_class.value.value
 
         elif content_class.__class__.__name__ == "Slice":
-            lower = (
-                str(content_class.lower.value) if content_class.lower != None else ""
-            )
-            upper = (
-                str(content_class.upper.value) if content_class.upper != None else ""
-            )
-            step = str(content_class.step.value) if content_class.step != None else ""
+            if content_class.lower.__class__.__name__ in self.revisitable_nodes:
+                lower = self.revisit_for_command(content_class.lower)
+            else:
+                lower = (
+                    str(content_class.lower.value)
+                    if content_class.lower != None
+                    else ""
+                )
+
+            if content_class.upper.__class__.__name__ in self.revisitable_nodes:
+                upper = self.revisit_for_command(content_class.upper)
+            else:
+                upper = (
+                    str(content_class.upper.value)
+                    if content_class.upper != None
+                    else ""
+                )
+
+            if content_class.step.__class__.__name__ in self.revisitable_nodes:
+                step = self.revisit_for_command(content_class.step)
+            else:
+                step = (
+                    str(content_class.step.value) if content_class.step != None else ""
+                )
+
             first_colon = (
                 ":" if content_class.first_colon.__class__.__name__ == "Colon" else ""
             )
+
             second_colon = (
                 ":" if content_class.second_colon.__class__.__name__ == "Colon" else ""
             )
