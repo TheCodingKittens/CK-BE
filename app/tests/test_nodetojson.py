@@ -80,12 +80,13 @@ def test_assign(parser: Parser):
     assert len(command1_parsed) == 1
 
     assert command2_parsed[0]["type"] == "Line"
-    assert command2_parsed[0]["command"] == "a, b = 4, c"
+    assert command2_parsed[0]["command"] == "(a, b) = (4, c)"
     assert len(command2_parsed) == 1
 
     assert command3_parsed[0]["type"] == "Line"
     assert (
-        command3_parsed[0]["command"] == "a, b, c = [2, True, [False, 4], 0], 5, False"
+        command3_parsed[0]["command"]
+        == "(a, b, c) = ([2, True, [False, 4], 0], 5, False)"
     )
     assert len(command3_parsed) == 1
 
@@ -263,18 +264,26 @@ def test_range(parser: Parser):
 
 def test_for_node(parser: Parser):
 
-    command_1 = """
-for i in range(5):
+    command_1 = """for i in range(5):
     value = i"""
-    command_2 = """
-for i in list:
+    command_2 = """for i in list:
     print(i + 1)"""
+    command_3 = """for key, value in dict.items():
+    print(key)
+    print(value)"""
+    command_4 = """for key, value in enumerate(dict):
+    print(key)
+    print(value)"""
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+    byte_command_4 = create_bytecode(command_4)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+    command4_parsed = parser.parse_module(byte_command_4)
 
     assert command1_parsed[0]["type"] == "For.test"
     assert command1_parsed[0]["command"] == "for i in range(5):"
@@ -286,17 +295,30 @@ for i in list:
     assert command2_parsed[1]["type"] == "For.body"
     assert len(command2_parsed) == 2
 
+    assert command3_parsed[0]["type"] == "For.test"
+    assert command3_parsed[0]["command"] == "for (key, value) in dict.items():"
+    assert command3_parsed[1]["type"] == "For.body"
+    assert len(command3_parsed) == 2
+
+    assert command4_parsed[0]["type"] == "For.test"
+    assert command4_parsed[0]["command"] == "for (key, value) in enumerate(dict):"
+    assert command4_parsed[1]["type"] == "For.body"
+    assert len(command4_parsed) == 2
+
 
 def test_single_expressions(parser: Parser):
     # in ipython, this is used to get values by simply typing them
     command_1 = "a"
     command_2 = "list"
+    command_3 = "1234"
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
 
     assert command1_parsed[0]["type"] == "Line"
     assert command1_parsed[0]["command"] == "a"
@@ -305,6 +327,10 @@ def test_single_expressions(parser: Parser):
     assert command2_parsed[0]["type"] == "Line"
     assert command2_parsed[0]["command"] == "list"
     assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "1234"
+    assert len(command3_parsed) == 1
 
 
 def test_list(parser: Parser):
@@ -382,6 +408,7 @@ def test_nested_lists_assign(parser: Parser):
 
 
 def test_list_slicing(parser: Parser):
+
     command_1 = "a[1:]"
     command_2 = "b = c[1:7:3]"
     command_3 = "c[::3]"
@@ -408,18 +435,25 @@ def test_list_slicing(parser: Parser):
 
 
 def test_node_combinations(parser: Parser):
+
     command_1 = "123"
     command_2 = "'hey'"
     command_3 = """if a % 2 == 0:
     print(a)"""
+    command_4 = "f, g = a * 2, b or c"
+    command_5 = "a, b = [1, 2, {'b': 5}, 4], True"
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
     byte_command_3 = create_bytecode(command_3)
+    byte_command_4 = create_bytecode(command_4)
+    byte_command_5 = create_bytecode(command_5)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
     command3_parsed = parser.parse_module(byte_command_3)
+    command4_parsed = parser.parse_module(byte_command_4)
+    command5_parsed = parser.parse_module(byte_command_5)
 
     assert command1_parsed[0]["type"] == "Line"
     assert command1_parsed[0]["command"] == "123"
@@ -435,3 +469,58 @@ def test_node_combinations(parser: Parser):
     assert command3_parsed[1]["value"][0]["type"] == "Line"
     assert command3_parsed[1]["value"][0]["command"] == "print(a)"
     assert len(command3_parsed) == 2
+
+    assert command4_parsed[0]["type"] == "Line"
+    assert command4_parsed[0]["command"] == "(f, g) = (a * 2, b or c)"
+    assert len(command4_parsed) == 1
+
+    assert command5_parsed[0]["type"] == "Line"
+    assert command5_parsed[0]["command"] == "(a, b) = ([1, 2, {'b': 5}, 4], True)"
+    assert len(command5_parsed) == 1
+
+
+def test_dicts(parser: Parser):
+
+    command_1 = "{'a': 4}"
+    command_2 = """c = {3: "Hey", 'b': True, 'c': [1, 2]}"""
+    command_3 = "{'a': {'b': 5}, 'c': 5, 'd': 1 + 1}"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "{'a': 4}"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "c = {3: \"Hey\", 'b': True, 'c': [1, 2]}"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "{'a': {'b': 5}, 'c': 5, 'd': 1 + 1}"
+    assert len(command3_parsed) == 1
+
+
+def test_tuples(parser: Parser):
+
+    command_1 = "(2, 4)"
+    command_2 = "a = (True, 5)"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "(2, 4)"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "a = (True, 5)"
+    assert len(command2_parsed) == 1
