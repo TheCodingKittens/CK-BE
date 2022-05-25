@@ -12,4 +12,4 @@ def test_create_command():
         command=userinput.command.data(), token=userinput.token, output="2"
     )
 
-    assert command.command == b"MSArIDE="
+    assert command.command == "MSArIDE="
