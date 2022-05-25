@@ -27,7 +27,7 @@ class UserInput(BaseModel):
 
 
 class CommandCreate(HashModel):
-    command: bytes = Field(title="The User's Command", index=True)
+    command: str = Field(title="The User's Command", index=True)
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
@@ -41,6 +41,7 @@ class CommandCreate(HashModel):
         database = get_redis_connection(
             url=settings.REDIS_DATA_URL, decode_responses=True
         )
+
 
 
 class Command(BaseModel):
