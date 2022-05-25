@@ -62,6 +62,9 @@ class CustomVisitor(cst.CSTVisitor):
     def visit_Subscript(self, node: "Subscript") -> Optional[bool]:
         return self.visit_node(node)
 
+    def visit_Tuple(self, node: "Tuple") -> Optional[bool]:
+        return self.visit_node(node)
+
     def visit_Expr(self, node: "Expr") -> Optional[bool]:
         json_objects = self.nodeToJSONConverter.create_json(node)
         if not json_objects:
@@ -84,6 +87,7 @@ class NodeToJSONConverter:
             "Subscript",
             "List",
             "Dict",
+            "Tuple",
         ]
 
     def create_json(self, node):
@@ -115,6 +119,8 @@ class NodeToJSONConverter:
             json_objects = self.create_json_value_check(node)
         elif classname == "Subscript":
             json_objects = self.create_json_subscript(node)
+        elif classname == "Tuple":
+            json_objects = self.create_json_tuple(node)
         else:
             print("ERROR: Unknown node type")
 
@@ -138,43 +144,21 @@ class NodeToJSONConverter:
         value = node.value
         json_objects = []
 
-        if (
-            hasattr(value, "elements")
-            and value.__class__.__name__ not in self.revisitable_nodes
-        ):
-            vals = []
-            targs = []
-
-            for element in value.elements:
-                if element.value.__class__.__name__ in self.revisitable_nodes:
-                    vals.append(self.revisit_for_command(element))
-                else:
-                    vals.append(element.value.value)
-            for element in targets[0].target.elements:
-                targs.append(element.value.value)
-            values = ", ".join(vals)
-            targets = ", ".join(targs)
-
-            data = {
-                "id": str(uuid.uuid4()),
-                "type": "Line",
-                "command": targets + " = " + values,
-            }
-
+        if value.__class__.__name__ in self.revisitable_nodes:
+            var_value = self.revisit_for_command(value)
         else:
+            var_value = value.value
 
-            if value.__class__.__name__ in self.revisitable_nodes:
-                var_value = self.revisit_for_command(value)
-            else:
-                var_value = value.value
+        if targets[0].target.__class__.__name__ in self.revisitable_nodes:
+            target_value = self.revisit_for_command(targets[0].target)
+        else:
+            target_value = targets[0].target.value
 
-            var_name = targets[0].target.value
-
-            data = {
-                "id": str(uuid.uuid4()),
-                "type": "Line",
-                "command": var_name + " = " + var_value,
-            }
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": target_value + " = " + var_value,
+        }
 
         json_objects.append(data)
 
@@ -255,15 +239,19 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        test_target = node.target.value
+        test_target = node.target
         test_function = node.iter
         body = node.body
 
-        # recursive calls to parse the test and body sections
-        if test_function.__class__.__name__ in self.revisitable_nodes:
-            value_test = self.revisit_for_command(test_function)
+        if test_target.__class__.__name__ in self.revisitable_nodes:
+            test_target = self.revisit_for_command(test_target)
         else:
-            value_test = test_function.value
+            test_target = test_target.value
+
+        if test_function.__class__.__name__ in self.revisitable_nodes:
+            test_function = self.revisit_for_command(test_function)
+        else:
+            test_function = test_function.value
 
         value_body = self.revisit(body)
 
@@ -274,7 +262,7 @@ class NodeToJSONConverter:
             + " "
             + test_target
             + " in "
-            + value_test
+            + test_function
             + ":",
         }
         body = {
@@ -397,6 +385,31 @@ class NodeToJSONConverter:
 
         json_objects = []
 
+        elements = []
+        # iterate through key/value pairs
+        for element in node.elements:
+
+            if element.key.__class__.__name__ in self.revisitable_nodes:
+                key = self.revisit_for_command(element.key)
+            else:
+                key = element.key.value
+
+            if element.value.__class__.__name__ in self.revisitable_nodes:
+                value = self.revisit_for_command(element.value)
+            else:
+                value = element.value.value
+
+            elements.append(key + ": " + value)
+
+        elements_as_string = "{" + ", ".join(elements) + "}"
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": elements_as_string,
+        }
+
+        json_objects.append(data)
         return json_objects
 
     # ------------------------------------ EXPR ------------------------------------
@@ -451,6 +464,29 @@ class NodeToJSONConverter:
             "id": str(uuid.uuid4()),
             "type": "Line",
             "command": element + "[" + content + "]",
+        }
+
+        json_objects.append(data)
+        return json_objects
+
+    # ------------------------------------ TUPLE ------------------------------------
+    def create_json_tuple(self, node):
+
+        json_objects = []
+
+        elements = []
+        for element in node.elements:
+            if element.value.__class__.__name__ in self.revisitable_nodes:
+                elements.append(self.revisit_for_command(element.value))
+            else:
+                elements.append(element.value.value)
+
+        elements_as_string = "(" + ", ".join(elements) + ")"
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": elements_as_string,
         }
 
         json_objects.append(data)
