@@ -518,14 +518,17 @@ def test_dicts(parser: Parser):
     command_1 = "{'a': 4}"
     command_2 = """c = {3: "Hey", 'b': True, 'c': [1, 2]}"""
     command_3 = "{'a': {'b': 5}, 'c': 5, 'd': 1 + 1}"
+    command_4 = "{}"
 
     byte_command_1 = create_bytecode(command_1)
     byte_command_2 = create_bytecode(command_2)
     byte_command_3 = create_bytecode(command_3)
+    byte_command_4 = create_bytecode(command_4)
 
     command1_parsed = parser.parse_module(byte_command_1)
     command2_parsed = parser.parse_module(byte_command_2)
     command3_parsed = parser.parse_module(byte_command_3)
+    command4_parsed = parser.parse_module(byte_command_4)
 
     assert command1_parsed[0]["type"] == "Line"
     assert command1_parsed[0]["command"] == "{'a': 4}"
@@ -538,6 +541,10 @@ def test_dicts(parser: Parser):
     assert command3_parsed[0]["type"] == "Line"
     assert command3_parsed[0]["command"] == "{'a': {'b': 5}, 'c': 5, 'd': 1 + 1}"
     assert len(command3_parsed) == 1
+
+    assert command4_parsed[0]["type"] == "Line"
+    assert command4_parsed[0]["command"] == "{}"
+    assert len(command4_parsed) == 1
 
 
 def test_tuples(parser: Parser):
