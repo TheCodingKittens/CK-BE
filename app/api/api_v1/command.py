@@ -7,7 +7,7 @@ from app import crud
 from app.controllers.command_controller import CommandController
 
 # Models
-from app.models.command import Command, UserInput
+from app.models.command import Command, UserInput, UserInputUpdate
 
 # Services
 from app.services.executor import Executor
@@ -40,6 +40,7 @@ async def save_command(
             parser=parser,
             executor=executor,
             jupyter_executor=jupyter_executor,
+            output=[],  # giving an empty list results in jupyter being run
         )
 
     except Exception as e:
@@ -71,7 +72,7 @@ async def get_command(pk: str, request: Request, response: Response):
 @router.put("/{pk}", response_model=List[Command])
 async def put_command(
     pk: str,
-    user_input: UserInput,
+    user_input: UserInputUpdate,
     parser: Parser = Depends(Parser),
     executor: Executor = Depends(Executor),
     command_controller: CommandController = Depends(CommandController),

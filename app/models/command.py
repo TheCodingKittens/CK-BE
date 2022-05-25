@@ -26,6 +26,12 @@ class UserInput(BaseModel):
     token: str = Field(title="The token of the user")
 
 
+class UserInputUpdate(BaseModel):
+    new_command: Base64Type
+    token: str = Field(title="The token of the user")
+    node_id: str = Field(title="The id of the edited node")
+
+
 class CommandCreate(HashModel):
     command: str = Field(title="The User's Command", index=True)
     created_at: datetime = Field(
@@ -41,7 +47,6 @@ class CommandCreate(HashModel):
         database = get_redis_connection(
             url=settings.REDIS_DATA_URL, decode_responses=True
         )
-
 
 
 class Command(BaseModel):
