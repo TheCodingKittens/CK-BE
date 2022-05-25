@@ -17,18 +17,24 @@ class NodeEditor:
             self.edit_command(json_object)
 
     def edit_command(self, json_object):
-        if json_object['id'] == self.node_to_edit_id:
+        if json_object["node_id"] == self.node_to_edit_id:
             self.initial_node = dict(json_object)
-            if 'command' in json_object:
-                json_object['command'] = self.new_command
+            if "command" in json_object:
+                json_object["command"] = self.new_command
                 self.edited_node = json_object
 
-        if 'value' in json_object:
-            for inner_json_object in json_object['value']:
+        if json_object["nodes"] != []:
+            for inner_json_object in json_object["nodes"]:
                 self.edit_command(inner_json_object)
 
     def display_node_changes(self):
 
-        print('The initial node was:', json.dumps(self.initial_node, indent=4, sort_keys=False))
-        print('\n')
-        print('After editing, the node is:', json.dumps(self.edited_node, indent=4, sort_keys=False))
+        print(
+            "The initial node was:",
+            json.dumps(self.initial_node, indent=4, sort_keys=False),
+        )
+        print("\n")
+        print(
+            "After editing, the node is:",
+            json.dumps(self.edited_node, indent=4, sort_keys=False),
+        )
