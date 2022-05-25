@@ -101,21 +101,21 @@ class CommandController:
         jupyter_executor: ExecutorJuypter,
     ) -> List[Command]:
 
-        # 2. Fetch ALL session wrappers ✅
+        # 1. Fetch ALL session wrappers ✅
         session_commands = await crud.command.read_all_by_token(user_input.token)
 
-        # 3. Fetch the modified CommandWrapper given the CommandWrapper ID ✅
+        # 2. Fetch the modified CommandWrapper given the CommandWrapper ID ✅
         update_index = 0
         for i, command in enumerate(session_commands):
             if command.pk == pk:
                 update_index = i
                 break
 
-        # 4. Create a list of successors and predecessor (also needed later on) ✅
+        # 3. Create a list of successors and predecessor (also needed later on) ✅
         predecessors = session_commands[0:update_index]
         successors = session_commands[update_index + 1 :]
 
-        # Save predecessors and successors to the database with a new token
+        # 4. Run & Save predecessors, updated_command & successors to the database with a new token
 
         temp_token = str(uuid.uuid4())
 
@@ -142,11 +142,16 @@ class CommandController:
                 jupyter_executor=jupyter_executor,
             )
 
-        # 5. Delete the old CommandWrapper ✅
+        # 5. Delete the existing command_wrappers
+
         await crud.command.delete_all_by_token(user_input.token)
+
+        # 6. Update the temp token to the original token
 
         await crud.command.update_tokens(
             temp_token=temp_token, existing_token=user_input.token
         )
+
+        # 7. Return the updated session history
 
         return await crud.command.read_all_by_token(token=user_input.token)
