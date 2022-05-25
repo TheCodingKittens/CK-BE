@@ -15,6 +15,9 @@ class Base64Type:
     def __init__(self, decoded_bytes: bytes):
         self._decoded_bytes: bytes = decoded_bytes
 
+    def bytes(self) -> bytes:
+        return self._decoded_bytes
+
     def data(self) -> str:
         return self._decoded_bytes
 
@@ -50,3 +53,5 @@ class Base64Type:
             value = bytes(value)
 
         return cls(value)
+
+
