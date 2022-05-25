@@ -1,18 +1,24 @@
 # Models
+import base64
+import json
 import uuid
 from typing import List
 
 from app import crud
+from app.models.base64 import Base64Type
 from app.models.command import Command, CommandCreate, UserInput
 from app.models.edge import Edge
-from app.models.node import Node
+from app.models.node import Node, NodeRead
 from app.models.variable import Variable
 
 #  Services
 from app.services.edge_creator import EdgeCreator
 from app.services.executor import Executor
+from app.services.json_to_source_code_converter import JSONToSourceCodeConverter
 from app.services.jupyter_executor import ExecutorJuypter
+from app.services.node_editor import NodeEditor
 from app.services.parser import Parser
+from fastapi.encoders import jsonable_encoder
 
 
 class CommandController:
@@ -22,6 +28,7 @@ class CommandController:
         parser: Parser,
         executor: Executor,
         jupyter_executor: ExecutorJuypter,
+        output: str,
     ) -> Command:
         # get the session history of all command_wrappers
         current_state = await crud.command.read_all_by_token(user_input.token)
@@ -46,9 +53,14 @@ class CommandController:
         history_of_prev_commands = [command.command for command in current_state]
 
         # Execute a Jupyter Notebook and retrieve the output of the last, newest cell (get_output_of_last_cell)
-        command_output = jupyter_executor.run_notebook_given_history_and_new_command(
-            history_of_prev_commands, user_input.command
-        )
+        if output == []:
+            command_output = (
+                jupyter_executor.run_notebook_given_history_and_new_command(
+                    history_of_prev_commands, user_input.command
+                )
+            )
+        else:
+            command_output = output
 
         nodes = parser.parse_module(user_input.command)
 
@@ -109,49 +121,78 @@ class CommandController:
         for i, command in enumerate(session_commands):
             if command.pk == pk:
                 update_index = i
+                modified_wrapper = command
                 break
 
         # 3. Create a list of successors and predecessor (also needed later on) ✅
         predecessors = session_commands[0:update_index]
         successors = session_commands[update_index + 1 :]
 
-        # 4. Run & Save predecessors, updated_command & successors to the database with a new token
+        # 4. Create an updated json tree ✅
+        current_nodes = jsonable_encoder(modified_wrapper.nodes)
+        nodeEditor = NodeEditor(current_nodes)
+        nodeEditor.edit_node(
+            node_id=user_input.node_id,
+            new_command=user_input.new_command.decode_str(),
+        )
+        new_nodes = nodeEditor.json
 
+        # 5. Create the updated command property of the CommandWrapper ✅
+        jsonToSourceCodeConverter = JSONToSourceCodeConverter(new_nodes)
+        new_commandwrapper_command = jsonToSourceCodeConverter.generate_source_code()
+        new_commandwrapper_command = Base64Type(
+            base64.b64encode(str.encode(new_commandwrapper_command))
+        )
+
+        # 6. Combine ALL commands and execute them in a Jupyter notebook to receive the outputs (why here? only run once!) ✅
+        predecessor_commands = [wrapper.command for wrapper in predecessors]
+        successor_commands = [wrapper.command for wrapper in successors]
+        all_wrapper_commands = (
+            predecessor_commands + [new_commandwrapper_command] + successor_commands
+        )
+        try:
+            all_outputs = jupyter_executor.run_notebook_given_history(
+                all_wrapper_commands
+            )
+        except Exception as e:
+            return {"error": str(e)}
+
+        # 7. Run & Save predecessors, updated_command & successors to the database with a new token
         temp_token = str(uuid.uuid4())
 
-        for command in predecessors:
+        for i, command in enumerate(predecessors):
             await self.save(
                 user_input=UserInput(token=temp_token, command=command.command),
                 parser=parser,
                 executor=executor,
                 jupyter_executor=jupyter_executor,
+                output=all_outputs[i],
             )
 
         await self.save(
-            user_input=UserInput(token=temp_token, command=user_input.command),
+            user_input=UserInput(token=temp_token, command=new_commandwrapper_command),
             parser=parser,
             executor=executor,
             jupyter_executor=jupyter_executor,
+            output=all_outputs[len(predecessors)],
         )
 
-        for command in successors:
+        for i, command in enumerate(successors):
             await self.save(
                 user_input=UserInput(token=temp_token, command=command.command),
                 parser=parser,
                 executor=executor,
                 jupyter_executor=jupyter_executor,
+                output=all_outputs[i + 1 + len(predecessors)],
             )
 
-        # 5. Delete the existing command_wrappers
-
+        # 8. Delete the existing command_wrappers
         await crud.command.delete_all_by_token(user_input.token)
 
-        # 6. Update the temp token to the original token
-
+        # 9. Update the temp token to the original token
         await crud.command.update_tokens(
             temp_token=temp_token, existing_token=user_input.token
         )
 
-        # 7. Return the updated session history
-
+        # 10. Return the updated session history
         return await crud.command.read_all_by_token(token=user_input.token)
