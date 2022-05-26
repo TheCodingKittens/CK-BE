@@ -32,6 +32,10 @@ class UserInputUpdate(BaseModel):
     node_id: str = Field(title="The id of the edited node")
 
 
+class UserInputDelete(BaseModel):
+    token: str = Field(title="The token of the user")
+
+
 class CommandCreate(HashModel):
     command: str = Field(title="The User's Command", index=True)
     created_at: datetime = Field(
