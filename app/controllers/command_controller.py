@@ -18,6 +18,7 @@ from app.services.json_to_source_code_converter import JSONToSourceCodeConverter
 from app.services.jupyter_executor import ExecutorJuypter
 from app.services.node_editor import NodeEditor
 from app.services.parser import Parser
+from app.services.variable_transformer import VariableTransformer
 from fastapi.encoders import jsonable_encoder
 
 
@@ -28,6 +29,7 @@ class CommandController:
         parser: Parser,
         executor: Executor,
         jupyter_executor: ExecutorJuypter,
+        variable_transformer: VariableTransformer,
         output: str,
     ) -> Command:
         # get the session history of all command_wrappers
@@ -74,9 +76,15 @@ class CommandController:
         )
 
         # create and save variables
-        for key, item in new_variables.items():
+        new_variables = variable_transformer.transform_variables(new_variables)
+        for var in new_variables:
             await crud.variable.create(
-                Variable(command_pk=db_command.pk, var_name=key, value=item)
+                Variable(
+                    command_pk=db_command.pk,
+                    var_name=var["key"],
+                    value=var["value"],
+                    type=var["type"],
+                )
             )
 
         await crud.node.create_bulk(

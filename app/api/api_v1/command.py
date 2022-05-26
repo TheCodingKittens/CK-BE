@@ -13,6 +13,7 @@ from app.models.command import Command, UserInput, UserInputUpdate
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
 from app.services.parser import Parser
+from app.services.variable_transformer import VariableTransformer
 
 # Fastapi Dependencies
 from aredis_om.model import NotFoundError
@@ -32,6 +33,7 @@ async def save_command(
     parser: Parser = Depends(Parser),
     executor: Executor = Depends(Executor),
     jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
+    variable_transformer: VariableTransformer = Depends(VariableTransformer),
 ) -> List[Command]:
 
     return await command_controller.save(
@@ -39,6 +41,7 @@ async def save_command(
         parser=parser,
         executor=executor,
         jupyter_executor=jupyter_executor,
+        variable_transformer=variable_transformer,
         output=[],  # giving an empty list results in jupyter being run
     )
 

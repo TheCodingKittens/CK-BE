@@ -4,8 +4,8 @@ import pytest
 from app.main import get_application
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
-from app.services.node_to_json import NodeToJSONConverter
 from app.services.parser import Parser
+from app.services.variable_transformer import VariableTransformer
 from fastapi.testclient import TestClient
 
 
@@ -24,9 +24,15 @@ def parser() -> Generator:
 def executor() -> Generator:
     return Executor()
 
+
 @pytest.fixture(scope="module")
 def jupyterexecutor() -> Generator:
     return ExecutorJuypter()
+
+
+@pytest.fixture(scope="module")
+def variabletransformer() -> Generator:
+    return VariableTransformer()
 
 
 # TODO implemented the creation of the Node
