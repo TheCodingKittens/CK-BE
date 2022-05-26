@@ -565,3 +565,30 @@ def test_tuples(parser: Parser):
     assert command2_parsed[0]["type"] == "Line"
     assert command2_parsed[0]["command"] == "a = (True, 5)"
     assert len(command2_parsed) == 1
+
+
+def test_method_calls(parser: Parser):
+
+    command_1 = "a.append(1)"
+    command_2 = "list.pop(2, 4)"
+    command_3 = "list.append([2, 3])"
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+    byte_command_3 = create_bytecode(command_3)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+    command3_parsed = parser.parse_module(byte_command_3)
+
+    assert command1_parsed[0]["type"] == "Line"
+    assert command1_parsed[0]["command"] == "a.append(1)"
+    assert len(command1_parsed) == 1
+
+    assert command2_parsed[0]["type"] == "Line"
+    assert command2_parsed[0]["command"] == "list.pop(2, 4)"
+    assert len(command2_parsed) == 1
+
+    assert command3_parsed[0]["type"] == "Line"
+    assert command3_parsed[0]["command"] == "list.append([2, 3])"
+    assert len(command3_parsed) == 1

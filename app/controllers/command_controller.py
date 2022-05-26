@@ -2,6 +2,7 @@
 import base64
 import json
 import uuid
+from ast import literal_eval
 from typing import List
 
 from app import crud
@@ -43,7 +44,11 @@ class CommandController:
 
         if latest_command:
             for x in latest_command.variables:
-                value = int(x.value) if x.value.isnumeric() else x.value
+                try:
+                    value = literal_eval(x.value)
+                except ValueError:
+                    value = x.value
+
                 latest_variables[x.var_name] = value
 
         # Execute the command using the current state of variables and retrieve the new state of the variables
@@ -119,6 +124,7 @@ class CommandController:
         parser: Parser,
         executor: Executor,
         jupyter_executor: ExecutorJuypter,
+        variable_transformer: VariableTransformer,
     ) -> List[Command]:
 
         # 1. Fetch ALL session wrappers ✅
@@ -170,6 +176,7 @@ class CommandController:
                 parser=parser,
                 executor=executor,
                 jupyter_executor=jupyter_executor,
+                variable_transformer=variable_transformer,
                 output=all_outputs[i],
             )
 
@@ -178,6 +185,7 @@ class CommandController:
             parser=parser,
             executor=executor,
             jupyter_executor=jupyter_executor,
+            variable_transformer=variable_transformer,
             output=all_outputs[len(predecessors)],
         )
 
@@ -187,6 +195,7 @@ class CommandController:
                 parser=parser,
                 executor=executor,
                 jupyter_executor=jupyter_executor,
+                variable_transformer=variable_transformer,
                 output=all_outputs[i + 1 + len(predecessors)],
             )
 

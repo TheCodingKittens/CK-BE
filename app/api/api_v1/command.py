@@ -2,19 +2,15 @@ from typing import List
 
 # CRUD operations for the Command model
 from app import crud
-
 # Controllers
 from app.controllers.command_controller import CommandController
-
 # Models
 from app.models.command import Command, UserInput, UserInputUpdate
-
 # Services
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
 from app.services.parser import Parser
 from app.services.variable_transformer import VariableTransformer
-
 # Fastapi Dependencies
 from aredis_om.model import NotFoundError
 from fastapi import APIRouter, Depends, HTTPException
@@ -76,6 +72,7 @@ async def put_command(
     executor: Executor = Depends(Executor),
     command_controller: CommandController = Depends(CommandController),
     jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
+    variable_transformer: VariableTransformer = Depends(VariableTransformer),
 ) -> List[Command]:
 
     return await command_controller.update(
@@ -84,6 +81,7 @@ async def put_command(
         parser=parser,
         executor=executor,
         jupyter_executor=jupyter_executor,
+        variable_transformer=variable_transformer,
     )
 
 
