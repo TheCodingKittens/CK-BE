@@ -1,16 +1,20 @@
-from typing import List
+from typing import Any, List
 
 # CRUD operations for the Command model
 from app import crud
+
 # Controllers
 from app.controllers.command_controller import CommandController
+
 # Models
 from app.models.command import Command, UserInput, UserInputUpdate
+
 # Services
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
 from app.services.parser import Parser
 from app.services.variable_transformer import VariableTransformer
+
 # Fastapi Dependencies
 from aredis_om.model import NotFoundError
 from fastapi import APIRouter, Depends, HTTPException
@@ -85,9 +89,10 @@ async def put_command(
     )
 
 
-@router.delete("/{pk}", response_model=Command)
+@router.delete("/{pk}", response_model=Any)
 async def delete_command(pk: str):
     try:
         return await crud.command.delete(pk)
+
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Command not found")
