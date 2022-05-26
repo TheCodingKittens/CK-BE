@@ -7,11 +7,11 @@ def test_variables(variabletransformer: VariableTransformer):
     transformed_vars = variabletransformer.transform_variables(vars_as_dict)
 
     assert transformed_vars[0]["key"] == "a"
-    assert transformed_vars[0]["value"] == 7
+    assert transformed_vars[0]["value"] == "7"
     assert transformed_vars[0]["type"] == "general"
 
     assert transformed_vars[1]["key"] == "b"
-    assert transformed_vars[1]["value"] == True
+    assert transformed_vars[1]["value"] == "True"
     assert transformed_vars[1]["type"] == "general"
 
     assert transformed_vars[2]["key"] == "c"
@@ -39,3 +39,14 @@ def test_nested_variables(variabletransformer: VariableTransformer):
     assert transformed_vars[2]["key"] == "z"
     assert transformed_vars[2]["value"] == """[1, {"r": 4}, [], {}]"""
     assert transformed_vars[2]["type"] == "list"
+
+
+def test_tuples(variabletransformer: VariableTransformer):
+
+    vars_as_dict = {"a": (True, 4, [])}
+
+    transformed_vars = variabletransformer.transform_variables(vars_as_dict)
+
+    assert transformed_vars[0]["key"] == "a"
+    assert transformed_vars[0]["value"] == """(True, 4, [])"""
+    assert transformed_vars[0]["type"] == "general"

@@ -148,14 +148,12 @@ print(3)"""
     assert isinstance(result, Exception)
 
 
-
 def test_command_with_error(executor: Executor):
     command = Base64Type(base64.b64encode(b"1 y"))
 
     result = executor.exec_module(command)
 
     assert isinstance(result, Exception)
-
 
 
 def test_dupicate_variable(executor: Executor):
@@ -172,7 +170,7 @@ a = 2
     result = executor.exec_module(command)
 
     # assert result == {"a": 2, "stdout": "2\n"}
-    assert result == {"a" : 2}
+    assert result == {"a": 2}
 
 
 # def test_dupicate_variable(executor: Executor):
@@ -225,28 +223,28 @@ print(1 + 3)
     result = executor.exec_command_history(history)
 
     # assert result == {"a": 3, "stdout": "3\n4\n"}
-    assert result == {"a": 3, "b" : 2}
+    assert result == {"a": 3, "b": 2}
 
 
 def test_execute_module(executor: Executor):
-    
+
     command = b"""a = 3"""
 
     result = executor.exec_module(Base64Type(base64.b64encode(command)))
 
-    assert result == {"a" : 3}
+    assert result == {"a": 3}
 
 
 def test_execute_long_module(executor: Executor):
-    
+
     command = b"""a = 5
 b = 2 + 2
 if a > 4:
     c = 3"""
 
     result = executor.exec_module(Base64Type(base64.b64encode(command)))
-    
-    assert result == {"a" : 5, "b" : 4, "c" : 3}
+
+    assert result == {"a": 5, "b": 4, "c": 3}
 
 
 def test_multiple_modules(executor: Executor):
@@ -265,13 +263,15 @@ def test_multiple_modules(executor: Executor):
 
     # fetch the old variables
     vars_until_command3 = executor.exec_command_history(history)
-    assert vars_until_command3 == {"a" : 5, "b" : 5}
+    assert vars_until_command3 == {"a": 5, "b": 5}
 
     # execute the new command with the old variables as a basis
     decoded_new_command = Base64Type(base64.b64encode(new_command))
-    new_vars = executor.exec_module_from_history(decoded_new_command, vars_until_command3)
+    new_vars = executor.exec_module_from_history(
+        decoded_new_command, vars_until_command3
+    )
 
-    assert new_vars == {"a" : 4, "b" : 5, "c" : 6}
+    assert new_vars == {"a": 4, "b": 5, "c": 6}
 
 
 def test_list_returns(executor: Executor):
@@ -286,3 +286,17 @@ def test_list_returns(executor: Executor):
     vars = executor.exec_command_history(history)
 
     assert vars == {"list": [1, 2, 3], "list2": [1, [2, 3], 3]}
+
+
+def test_tuple_returns(executor: Executor):
+
+    command1 = b"a = True, 4"
+    command2 = b"""a = ("hey", False, [1])"""
+
+    history = []
+    history.append(Base64Type(base64.b64encode(command1)))
+    history.append(Base64Type(base64.b64encode(command2)))
+
+    vars = executor.exec_command_history(history)
+
+    assert vars == {"a": ("hey", False, [1])}

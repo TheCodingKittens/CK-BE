@@ -13,12 +13,16 @@ class VariableTransformer:
 
         for key, value in variables.items():
             type = "general"
+            if isinstance(value, str):
+                value = '"' + value + '"'
             if isinstance(value, list):
                 type = "list"
                 value = self.transform_list(value)
             elif isinstance(value, dict):
                 type = "dict"
                 value = self.transform_dict(value)
+            else:
+                value = str(value)
 
             var_as_dict = {}
             var_as_dict["key"] = key
@@ -56,6 +60,8 @@ class VariableTransformer:
 
             if isinstance(key, str):
                 key = '"' + key + '"'
+            else:
+                key = str(key)
 
             dict_values.append(key + ": " + value_as_string)
 
