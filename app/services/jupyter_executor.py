@@ -3,7 +3,7 @@ from typing import List
 import nbformat as nbf
 from app.models.base64 import Base64Type
 from fastapi import HTTPException
-from nbconvert.preprocessors import ExecutePreprocessor
+from nbconvert.preprocessors import CellExecutionError, ExecutePreprocessor
 
 
 class ExecutorJuypter:
@@ -58,9 +58,15 @@ class ExecutorJuypter:
     # ------------ EXECUTE A GIVEN NOTEBOOK ------------
     def execute_notebook(self, nb):
         try:
-            return self.ep.preprocess(nb)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            out = self.ep.preprocess(nb)
+            return out
+        except Exception as error:
+            if isinstance(error, CellExecutionError):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{error.ename}: {error.evalue}",
+                )
+            raise HTTPException(status_code=400, detail=str(error))
 
     # ----- RUN NOTEBOOK FROM HISTORY AND NEW COMMAND. RETURNS OUTPUT OF NEW COMMAND -----
     def run_notebook_given_history_and_new_command(

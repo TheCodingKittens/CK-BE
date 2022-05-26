@@ -105,4 +105,4 @@ class Executor:
                     status_code=400,
                     detail=f"Syntax Error: {error}, msg: {error.text}",
                 )
-            raise HTTPException(status_code=500, detail=error)
+            raise HTTPException(status_code=400, detail=str(error))

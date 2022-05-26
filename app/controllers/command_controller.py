@@ -150,12 +150,8 @@ class CommandController:
         all_wrapper_commands = (
             predecessor_commands + [new_commandwrapper_command] + successor_commands
         )
-        try:
-            all_outputs = jupyter_executor.run_notebook_given_history(
-                all_wrapper_commands
-            )
-        except Exception as e:
-            return {"error": str(e)}
+
+        all_outputs = jupyter_executor.run_notebook_given_history(all_wrapper_commands)
 
         # 7. Run & Save predecessors, updated_command & successors to the database with a new token
         temp_token = str(uuid.uuid4())

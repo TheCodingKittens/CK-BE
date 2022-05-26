@@ -75,17 +75,13 @@ async def put_command(
     jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
 ) -> List[Command]:
 
-    try:
-        return await command_controller.update(
-            pk=pk,
-            user_input=user_input,
-            parser=parser,
-            executor=executor,
-            jupyter_executor=jupyter_executor,
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return await command_controller.update(
+        pk=pk,
+        user_input=user_input,
+        parser=parser,
+        executor=executor,
+        jupyter_executor=jupyter_executor,
+    )
 
 
 @router.delete("/{pk}", response_model=Command)
