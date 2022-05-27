@@ -111,14 +111,17 @@ class EdgeCreator:
                     }
                 )
             else:
-                self.executed_edges.append(
-                    {
-                        "from": json_object["node_id"],
-                        "to": same_indentation_level_connection["node_id"],
-                    }
-                )
+                if same_indentation_level_connection:
+                    self.executed_edges.append(
+                        {
+                            "from": json_object["node_id"],
+                            "to": same_indentation_level_connection["node_id"],
+                        }
+                    )
 
         elif json_object_type == "If.body":
+            same_indentation_level_connection = None
+
             for indentation_item in self.all_indentation_items:
                 if (
                     indentation_item.command_number > start_command_number
@@ -128,7 +131,27 @@ class EdgeCreator:
                 ):
                     if indentation_item.data not in connections:
                         connections.append(indentation_item.data)
+                        same_indentation_level_connection = indentation_item.data
                         break
+
+            if same_indentation_level_connection:
+                for from_connection, to_connections in self.connections.items():
+                    if to_connections:
+                        for to_connection in to_connections:
+                            if to_connection["node_id"] == json_object["node_id"]:
+                                for executed_edge_pair in self.executed_edges:
+                                    if (
+                                        executed_edge_pair["to"]
+                                        == json_object["node_id"]
+                                    ):
+                                        self.executed_edges.append(
+                                            {
+                                                "from": json_object["node_id"],
+                                                "to": same_indentation_level_connection[
+                                                    "node_id"
+                                                ],
+                                            }
+                                        )
 
         elif json_object_type == "If.else":
             same_indentation_level_connection = None
@@ -144,20 +167,24 @@ class EdgeCreator:
                         connections.append(indentation_item.data)
                         break
 
-            for from_connection, to_connections in self.connections.items():
-                if to_connections:
-                    for to_connection in to_connections:
-                        if to_connection["node_id"] == json_object["node_id"]:
-                            for executed_edge_pair in self.executed_edges:
-                                if executed_edge_pair["to"] == json_object["node_id"]:
-                                    self.executed_edges.append(
-                                        {
-                                            "from": json_object["node_id"],
-                                            "to": same_indentation_level_connection[
-                                                "node_id"
-                                            ],
-                                        }
-                                    )
+            if same_indentation_level_connection:
+                for from_connection, to_connections in self.connections.items():
+                    if to_connections:
+                        for to_connection in to_connections:
+                            if to_connection["node_id"] == json_object["node_id"]:
+                                for executed_edge_pair in self.executed_edges:
+                                    if (
+                                        executed_edge_pair["to"]
+                                        == json_object["node_id"]
+                                    ):
+                                        self.executed_edges.append(
+                                            {
+                                                "from": json_object["node_id"],
+                                                "to": same_indentation_level_connection[
+                                                    "node_id"
+                                                ],
+                                            }
+                                        )
 
         elif json_object_type == "While.test":
             connections.append(next_indentation_item.data)
@@ -186,12 +213,13 @@ class EdgeCreator:
                     }
                 )
 
-            self.executed_edges.append(
-                {
-                    "from": json_object["node_id"],
-                    "to": same_indentation_level_connection["node_id"],
-                }
-            )
+            if same_indentation_level_connection:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": same_indentation_level_connection["node_id"],
+                    }
+                )
 
         elif json_object_type == "While.body":
             connections.append(previous_indentation_item.data)
@@ -238,12 +266,13 @@ class EdgeCreator:
                     }
                 )
 
-            self.executed_edges.append(
-                {
-                    "from": json_object["node_id"],
-                    "to": same_indentation_level_connection["node_id"],
-                }
-            )
+            if same_indentation_level_connection:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": same_indentation_level_connection["node_id"],
+                    }
+                )
 
         elif json_object_type == "For.body":
             connections.append(previous_indentation_item.data)
@@ -282,6 +311,7 @@ class EdgeCreator:
         AND is one indenation level before the node in question.
         :param json_object: the current node being examined
         """
+
         for indentation_item in self.all_indentation_items:
             if indentation_item.data["node_id"] == json_object["node_id"]:
                 if indentation_item.indentation_level >= 1:
