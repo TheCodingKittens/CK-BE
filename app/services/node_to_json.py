@@ -68,6 +68,9 @@ class CustomVisitor(cst.CSTVisitor):
     def visit_Tuple(self, node: "Tuple") -> Optional[bool]:
         return self.visit_node(node)
 
+    def visit_FunctionDef(self, node: "FunctionDef") -> Optional[bool]:
+        return self.visit_node(node)
+
     def visit_Expr(self, node: "Expr") -> Optional[bool]:
         json_objects = self.nodeToJSONConverter.create_json(node)
         if not json_objects:
@@ -127,6 +130,8 @@ class NodeToJSONConverter:
             json_objects = self.create_json_subscript(node)
         elif classname == "Tuple":
             json_objects = self.create_json_tuple(node)
+        elif classname == "FunctionDef":
+            json_objects = self.create_json_function(node)
         else:
             print("ERROR: Unknown node type")
 
@@ -549,6 +554,38 @@ class NodeToJSONConverter:
             "type": "Line",
             "command": elements_as_string,
             "nodes": [],
+        }
+
+        json_objects.append(data)
+        return json_objects
+
+    # ------------------------------------ FUNCTION ------------------------------------
+    def create_json_function(self, node):
+
+        json_objects = []
+
+        name = node.name.value
+        parameters = node.params.params
+
+        params_as_list = []
+        for param in parameters:
+            value = param.name.value
+            if param.default != None:
+                if param.default.__class__.__name__ in self.revisitable_nodes:
+                    value += "=" + self.revisit_for_command(param.default)
+                else:
+                    value += "=" + param.default.value
+            params_as_list.append(value)
+
+        params_as_string = "(" + ", ".join(params_as_list) + "):"
+
+        nodes = self.revisit(node.body)
+
+        data = {
+            "node_id": str(uuid.uuid4()),
+            "type": "Function",
+            "command": "def " + name + params_as_string,
+            "nodes": nodes,  # NESTED
         }
 
         json_objects.append(data)

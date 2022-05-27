@@ -592,3 +592,40 @@ def test_method_calls(parser: Parser):
     assert command3_parsed[0]["type"] == "Line"
     assert command3_parsed[0]["command"] == "list.append([2, 3])"
     assert len(command3_parsed) == 1
+
+
+def test_functions(parser: Parser):
+
+    command_1 = """def foo(a):
+    print(a)
+    print(1)
+foo(7)"""
+    command_2 = """def test(a, b=1, c=[1, 2]):
+    print(a)
+    if b == 1:
+        print('default')
+test(2)"""
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+
+    assert command1_parsed[0]["type"] == "Function"
+    assert command1_parsed[0]["command"] == "def foo(a):"
+    assert command1_parsed[0]["nodes"][0]["command"] == "print(a)"
+    assert command1_parsed[0]["nodes"][1]["command"] == "print(1)"
+    assert command1_parsed[1]["type"] == "Line"
+    assert command1_parsed[1]["command"] == "foo(7)"
+    assert len(command1_parsed) == 2
+
+    assert command2_parsed[0]["type"] == "Function"
+    assert command2_parsed[0]["command"] == "def test(a, b=1, c=[1, 2]):"
+    assert command2_parsed[0]["nodes"][0]["command"] == "print(a)"
+    assert command2_parsed[0]["nodes"][1]["command"] == "if b == 1:"
+    assert command2_parsed[0]["nodes"][2]["type"] == "If.body"
+    assert command2_parsed[0]["nodes"][2]["nodes"][0]["command"] == "print('default')"
+    assert command2_parsed[1]["type"] == "Line"
+    assert command2_parsed[1]["command"] == "test(2)"
+    assert len(command2_parsed) == 2
