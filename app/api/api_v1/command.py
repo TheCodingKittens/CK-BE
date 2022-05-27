@@ -1,16 +1,20 @@
-from typing import List
+from typing import Any, List
 
 # CRUD operations for the Command model
 from app import crud
+
 # Controllers
 from app.controllers.command_controller import CommandController
+
 # Models
-from app.models.command import Command, UserInput, UserInputUpdate
+from app.models.command import Command, UserInput, UserInputDelete, UserInputUpdate
+
 # Services
 from app.services.executor import Executor
 from app.services.jupyter_executor import ExecutorJuypter
 from app.services.parser import Parser
 from app.services.variable_transformer import VariableTransformer
+
 # Fastapi Dependencies
 from aredis_om.model import NotFoundError
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,7 +25,7 @@ from starlette.responses import Response
 router = APIRouter()
 
 
-# User Posts a new command to /api/v1/command
+# User Posts a new command
 @router.post("", response_model=List[Command])
 async def save_command(
     user_input: UserInput,
@@ -62,8 +66,7 @@ async def get_command(pk: str, request: Request, response: Response):
         raise HTTPException(status_code=404, detail="Command not found")
 
 
-# TODO make it so that token, nodeID and commandwrapperID are sent from frontend
-# 1. User changes a node and sends a request including NodeID, respective CommandWrapperID and new command (for the node)
+# User changes a node and sends a request including NodeID, respective CommandWrapperID and new command (for the node)
 @router.put("/{pk}", response_model=List[Command])
 async def put_command(
     pk: str,
@@ -85,9 +88,24 @@ async def put_command(
     )
 
 
-@router.delete("/{pk}", response_model=Command)
-async def delete_command(pk: str):
-    try:
-        return await crud.command.delete(pk)
-    except NotFoundError:
-        raise HTTPException(status_code=404, detail="Command not found")
+
+# User deletes a command
+@router.delete("/{pk}", response_model=List[Command])
+async def delete_command(
+    pk: str,
+    user_input: UserInputDelete,
+    parser: Parser = Depends(Parser),
+    executor: Executor = Depends(Executor),
+    command_controller: CommandController = Depends(CommandController),
+    jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
+    variable_transformer: VariableTransformer = Depends(VariableTransformer),
+) -> List[Command]:
+
+    return await command_controller.delete(
+        pk=pk,
+        user_input=user_input,
+        parser=parser,
+        executor=executor,
+        jupyter_executor=jupyter_executor,
+        variable_transformer=variable_transformer,
+    )

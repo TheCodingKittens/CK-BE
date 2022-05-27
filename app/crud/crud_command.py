@@ -95,10 +95,14 @@ class CRUDCommand(CRUDBase[CommandCreate, CommandCreate, Command]):
 
         return sorted(matching_token_models, key=lambda x: x.created_at, reverse=False)
 
-    async def delete(self, pk: str) -> None:
+    async def delete(self, pk: str) -> List[Command]:
         try:
             db_object = await CommandCreate.get(pk)
+            token = db_object.token
             await db_object.delete()
+
+            return await self.read_all_by_token(token=token)
+
         except NotFoundError:
             raise HTTPException(status_code=404, detail="Model not found")
 
