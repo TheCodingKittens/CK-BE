@@ -38,8 +38,7 @@ class UserInputDelete(BaseModel):
 
 class UserInputSwap(BaseModel):
     token: str = Field(title="The token of the user")
-    wrapper_id_1: str = Field(title="The id of the first command")
-    wrapper_id_2: str = Field(title="The id of the second command")
+    swapping_wrapper_id: str = Field(title="The id of the first command")
 
 
 class CommandCreate(HashModel):

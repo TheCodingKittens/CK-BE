@@ -269,6 +269,7 @@ class CommandController:
     # ------------------------ SWAP ------------------------
     async def swap(
         self,
+        pk: str,
         user_input: UserInputSwap,
         parser: Parser,
         executor: Executor,
@@ -283,9 +284,9 @@ class CommandController:
         wrapper_1_index = 0
         wrapper_2_index = 0
         for i, command in enumerate(session_commands):
-            if command.pk == user_input.wrapper_id_1:
+            if command.pk == pk:
                 wrapper_1_index = i
-            if command.pk == user_input.wrapper_id_2:
+            if command.pk == user_input.swapping_wrapper_id:
                 wrapper_2_index = i
 
         session_commands[wrapper_1_index], session_commands[wrapper_2_index] = (

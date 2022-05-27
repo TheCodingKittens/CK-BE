@@ -117,8 +117,9 @@ async def delete_command(
 
 
 # User swaps two commands
-@router.put("/swap", response_model=List[Command])
+@router.put("/{pk}/swap", response_model=List[Command])
 async def put_command(
+    pk: str,
     user_input: UserInputSwap,
     parser: Parser = Depends(Parser),
     executor: Executor = Depends(Executor),
@@ -128,6 +129,7 @@ async def put_command(
 ) -> List[Command]:
 
     return await command_controller.swap(
+        pk=pk,
         user_input=user_input,
         parser=parser,
         executor=executor,
