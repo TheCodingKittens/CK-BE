@@ -74,6 +74,7 @@ class EdgeCreator:
         if json_object_type == "Line":
             connections.append(next_indentation_item.data)
             exec(json_object["command"], {}, self.variables_dict)
+
             if current_indentation_item.indentation_level == 0:
                 self.executed_edges.append(
                     {
@@ -366,51 +367,51 @@ class EdgeCreator:
 
                         self.edges.append(connection_detail)
 
+        updated_edges = []
+
+        for edge in self.edges:
+            updated_edge = {
+                "from": edge["from"],
+                "to": edge["to"],
+                "parent": edge["parent"],
+                "executed": edge["executed"],
+            }
+
+            if edge["parent"]:
+                for executed_edge_pair in self.executed_edges:
+                    if executed_edge_pair["from"] == edge["parent"]:
+                        updated_edge["executed"] = True
+
+            updated_edges.append(updated_edge)
+
+        self.edges = list(updated_edges)
+
     def create_readable_edges(self, show_ids=True, show_output=False):
-        edges_to_print = []
 
-        for edge_pair in self.edges:
-            from_id = edge_pair["from"]
-            to_id = edge_pair["to"]
-            from_node = self.get_json_object_for_id(from_id)
-            parent_node = None
-            to_node = self.get_json_object_for_id(to_id)
-            if "parent" in edge_pair:
-                parent_node = self.get_json_object_for_id(edge_pair["parent"])
-                pass
-            edge_pair_print_format = {"from": None, "to": None}
+        for edge in self.edges:
+            from_json_object = self.get_json_object_for_id(edge["from"])
+            to_json_object = self.get_json_object_for_id(edge["to"])
+            parent_json_object = self.get_json_object_for_id(edge["parent"])
 
-            if not show_ids:
-                if from_node:
-                    if "command" in from_node:
-                        edge_pair_print_format["from"] = from_node["command"]
-                    else:
-                        edge_pair_print_format["from"] = from_node["type"]
+            readable_edge = {}
 
-                if to_node:
-                    if "command" in to_node:
-                        edge_pair_print_format["to"] = to_node["command"]
-                    else:
-                        edge_pair_print_format["to"] = to_node["type"]
-
-                if parent_node:
-                    if "command" in parent_node:
-                        edge_pair_print_format["parent"] = parent_node["command"]
-                    else:
-                        edge_pair_print_format["parent"] = parent_node["type"]
+            if "command" in from_json_object:
+                readable_edge["from"] = from_json_object["command"]
             else:
-                edge_pair_print_format["from"] = from_id
-                edge_pair_print_format["to"] = to_id
+                readable_edge["from"] = from_json_object["type"]
 
-            edge_pair_print_format["executed"] = False
+            if "command" in to_json_object:
+                readable_edge["to"] = to_json_object["command"]
+            else:
+                readable_edge["to"] = to_json_object["type"]
 
-            for executed_edge in self.executed_edges:
-                if executed_edge["from"] == from_id and executed_edge["to"] == to_id:
-                    edge_pair_print_format["executed"] = True
+            if parent_json_object:
+                readable_edge["parent"] = parent_json_object["type"]
+            else:
+                readable_edge["parent"] = None
 
-            edges_to_print.append(edge_pair_print_format)
+            readable_edge["executed"] = edge["executed"]
 
-            if show_output:
-                print(json.dumps(edge_pair_print_format, indent=4))
+            self.readable_edges.append(readable_edge)
 
-            self.readable_edges.append(edge_pair_print_format)
+        print(json.dumps(self.readable_edges, indent=4))
