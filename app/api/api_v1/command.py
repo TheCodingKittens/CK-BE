@@ -7,7 +7,13 @@ from app import crud
 from app.controllers.command_controller import CommandController
 
 # Models
-from app.models.command import Command, UserInput, UserInputDelete, UserInputUpdate
+from app.models.command import (
+    Command,
+    UserInput,
+    UserInputDelete,
+    UserInputSwap,
+    UserInputUpdate,
+)
 
 # Services
 from app.services.executor import Executor
@@ -88,7 +94,6 @@ async def put_command(
     )
 
 
-
 # User deletes a command
 @router.delete("/{pk}", response_model=List[Command])
 async def delete_command(
@@ -103,6 +108,26 @@ async def delete_command(
 
     return await command_controller.delete(
         pk=pk,
+        user_input=user_input,
+        parser=parser,
+        executor=executor,
+        jupyter_executor=jupyter_executor,
+        variable_transformer=variable_transformer,
+    )
+
+
+# User swaps two commands
+@router.put("/swap", response_model=List[Command])
+async def put_command(
+    user_input: UserInputSwap,
+    parser: Parser = Depends(Parser),
+    executor: Executor = Depends(Executor),
+    command_controller: CommandController = Depends(CommandController),
+    jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
+    variable_transformer: VariableTransformer = Depends(VariableTransformer),
+) -> List[Command]:
+
+    return await command_controller.swap(
         user_input=user_input,
         parser=parser,
         executor=executor,
