@@ -1,5 +1,4 @@
 import json
-import re
 from dataclasses import dataclass
 
 
@@ -41,6 +40,47 @@ class EdgeCreator:
         if json_object["nodes"]:
             for inner_json_object in json_object["nodes"]:
                 self.create_indentation_levels(inner_json_object, indentation_level + 1)
+
+    def get_test_source_code(self, current_indentation_item):
+        test_source_code = ""
+        stop_adding = False
+
+        for indentation_item_index, indentation_item in enumerate(
+            self.all_indentation_items
+        ):
+            if not stop_adding:
+                if "command" in indentation_item.data:
+                    for _ in range(indentation_item.indentation_level):
+                        test_source_code += "\t"
+                    test_source_code += indentation_item.data["command"] + "\n"
+
+            if (
+                indentation_item.data["node_id"]
+                == current_indentation_item.data["node_id"]
+            ):
+                for i in range(
+                    indentation_item_index + 2, len(self.all_indentation_items)
+                ):
+                    if (
+                        self.all_indentation_items[i].indentation_level
+                        <= current_indentation_item.indentation_level
+                    ):
+                        for _ in range(current_indentation_item.indentation_level + 1):
+                            test_source_code += "\t"
+                        test_source_code += "test_passed = True"
+                        stop_adding = True
+                        break
+                    else:
+                        if "command" in self.all_indentation_items[i].data:
+                            for _ in range(
+                                self.all_indentation_items[i].indentation_level
+                            ):
+                                test_source_code += "\t"
+                            test_source_code += (
+                                self.all_indentation_items[i].data["command"] + "\n"
+                            )
+
+        return test_source_code
 
     def find_connections(self, json_object):
         connections = []
@@ -100,11 +140,11 @@ class EdgeCreator:
                         # this is the next connection
                         break
 
-            pattern = "{0}(.*?){1}".format("if ", ":")
-            test_to_execute = re.search(pattern, json_object["command"]).group(1)
-            test_passed = eval(test_to_execute, {}, self.variables_dict)
+            test_source_code = self.get_test_source_code(current_indentation_item)
+            temp_variables_dict = dict(self.variables_dict)
+            exec(test_source_code, {}, temp_variables_dict)
 
-            if test_passed:
+            if "test_passed" in temp_variables_dict:
                 self.executed_edges.append(
                     {
                         "from": json_object["node_id"],
@@ -202,11 +242,11 @@ class EdgeCreator:
                         same_indentation_level_connection = indentation_item.data
                         break
 
-            pattern = "{0}(.*?){1}".format("while ", ":")
-            test_to_execute = re.search(pattern, json_object["command"]).group(1)
-            test_passed = eval(test_to_execute, {}, self.variables_dict)
+            test_source_code = self.get_test_source_code(current_indentation_item)
+            temp_variables_dict = dict(self.variables_dict)
+            exec(test_source_code, {}, temp_variables_dict)
 
-            if test_passed:
+            if "test_passed" in temp_variables_dict:
                 self.executed_edges.append(
                     {
                         "from": json_object["node_id"],
@@ -255,9 +295,9 @@ class EdgeCreator:
                         # this is the next connection
                         break
 
+            test_source_code = self.get_test_source_code(current_indentation_item)
             temp_variables_dict = dict(self.variables_dict)
-            test_to_execute = json_object["command"] + "\n\ttest_passed = True"
-            exec(test_to_execute, {}, temp_variables_dict)
+            exec(test_source_code, {}, temp_variables_dict)
 
             if "test_passed" in temp_variables_dict:
                 self.executed_edges.append(
@@ -377,16 +417,18 @@ class EdgeCreator:
                 "executed": edge["executed"],
             }
 
-            if edge["parent"]:
-                for executed_edge_pair in self.executed_edges:
-                    if executed_edge_pair["from"] == edge["parent"]:
-                        updated_edge["executed"] = True
+            from_json_object = self.get_json_object_for_id(edge["from"])
+            if from_json_object["type"] == "Line":
+                if edge["parent"]:
+                    for executed_edge_pair in self.executed_edges:
+                        if executed_edge_pair["to"] == edge["parent"]:
+                            updated_edge["executed"] = True
 
             updated_edges.append(updated_edge)
 
         self.edges = list(updated_edges)
 
-    def create_readable_edges(self, show_ids=True, show_output=False):
+    def display_readable_edges(self):
 
         for edge in self.edges:
             from_json_object = self.get_json_object_for_id(edge["from"])
