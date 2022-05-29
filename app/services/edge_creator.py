@@ -43,48 +43,41 @@ class EdgeCreator:
 
     def get_test_source_code(self, current_indentation_item):
         test_source_code = ""
-        current_node = current_indentation_item.data
 
-        excluded_nodes = ["For.body", "If.body", "While.body", "If.else"]
-        passed_current_node = False
+        line_of_passing_current_node = -1
+        indentation_level_of_passed_current_node = -1
 
         for index, indentation_item in enumerate(self.all_indentation_items):
-            if indentation_item.data["type"] not in excluded_nodes:
-                if passed_current_node:
-                    if (
-                        indentation_item.indentation_level
-                        == current_indentation_item.indentation_level
-                    ):
-                        for _ in range(current_indentation_item.indentation_level + 1):
-                            test_source_code += "\t"
-                        test_source_code += "test_passed = True"
-                        break
-                    elif index == len(self.all_indentation_items) - 1:
-                        if "command" in indentation_item.data:
-                            for _ in range(indentation_item.indentation_level):
-                                test_source_code += "\t"
-                            test_source_code += indentation_item.data["command"] + "\n"
-                        else:
-                            for _ in range(indentation_item.indentation_level):
-                                test_source_code += "\t"
-                            test_source_code += indentation_item.data["type"] + "\n"
+            if (
+                indentation_item.data["node_id"]
+                == current_indentation_item.data["node_id"]
+            ):
+                line_of_passing_current_node = index
+                indentation_level_of_passed_current_node = (
+                    indentation_item.indentation_level
+                )
 
-                        for _ in range(current_indentation_item.indentation_level + 1):
-                            test_source_code += "\t"
-                        test_source_code += "test_passed = True"
-                        break
+            if "command" in indentation_item.data:
+                for _ in range(indentation_item.indentation_level):
+                    test_source_code += "\t"
+                test_source_code += indentation_item.data["command"] + "\n"
 
-                if indentation_item.data["node_id"] == current_node["node_id"]:
-                    passed_current_node = True
+        test_source_code_lines = test_source_code.split("\n")
+        test_source_code = ""
+        for index, line in enumerate(test_source_code_lines):
+            indentation_level = line.count("\t")
+            if (
+                index > line_of_passing_current_node
+                and indentation_level <= indentation_level_of_passed_current_node
+            ):
+                test_passed_line = ""
+                for _ in range(indentation_level + 1):
+                    test_passed_line += "\t"
+                test_passed_line += "test_passed = True"
+                test_source_code += test_passed_line
+                break
 
-                if "command" in indentation_item.data:
-                    for _ in range(indentation_item.indentation_level):
-                        test_source_code += "\t"
-                    test_source_code += indentation_item.data["command"] + "\n"
-                else:
-                    for _ in range(indentation_item.indentation_level):
-                        test_source_code += "\t"
-                    test_source_code += indentation_item.data["type"] + "\n"
+            test_source_code += line + "\n"
 
         return test_source_code
 
