@@ -22,11 +22,7 @@ from app.services.parser import Parser
 from app.services.variable_transformer import VariableTransformer
 
 # Fastapi Dependencies
-from aredis_om.model import NotFoundError
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi_cache.decorator import cache
-from starlette.requests import Request
-from starlette.responses import Response
+from fastapi import APIRouter, Depends
 
 router = APIRouter()
 
@@ -52,26 +48,6 @@ async def save_command(
     )
 
 
-@router.get("", response_model=List[Command])
-async def list_commands(request: Request, response: Response):
-    # To retrieve this command with its primary key, we use `command.get()`:
-
-    try:
-        return await crud.command.read_all()
-    except NotFoundError:
-        raise HTTPException(status_code=404, detail="No commands found")
-
-
-@router.get("/{pk}", response_model=Command)
-@cache(expire=10)
-async def get_command(pk: str, request: Request, response: Response):
-    # To retrieve this command with its primary key, we use `command.get()`:
-    try:
-        return await crud.command.read(pk)
-    except NotFoundError:
-        raise HTTPException(status_code=404, detail="Command not found")
-
-
 # User changes a node and sends a request including NodeID, respective CommandWrapperID and new command (for the node)
 @router.put("/{pk}", response_model=List[Command])
 async def put_command(
@@ -94,28 +70,6 @@ async def put_command(
     )
 
 
-# User deletes a command
-@router.delete("/{pk}", response_model=List[Command])
-async def delete_command(
-    pk: str,
-    user_input: UserInputDelete,
-    parser: Parser = Depends(Parser),
-    executor: Executor = Depends(Executor),
-    command_controller: CommandController = Depends(CommandController),
-    jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
-    variable_transformer: VariableTransformer = Depends(VariableTransformer),
-) -> List[Command]:
-
-    return await command_controller.delete(
-        pk=pk,
-        user_input=user_input,
-        parser=parser,
-        executor=executor,
-        jupyter_executor=jupyter_executor,
-        variable_transformer=variable_transformer,
-    )
-
-
 # User swaps two commands
 @router.put("/{pk}/swap", response_model=List[Command])
 async def put_command(
@@ -129,6 +83,28 @@ async def put_command(
 ) -> List[Command]:
 
     return await command_controller.swap(
+        pk=pk,
+        user_input=user_input,
+        parser=parser,
+        executor=executor,
+        jupyter_executor=jupyter_executor,
+        variable_transformer=variable_transformer,
+    )
+
+
+# User deletes a command
+@router.delete("/{pk}", response_model=List[Command])
+async def delete_command(
+    pk: str,
+    user_input: UserInputDelete,
+    parser: Parser = Depends(Parser),
+    executor: Executor = Depends(Executor),
+    command_controller: CommandController = Depends(CommandController),
+    jupyter_executor: ExecutorJuypter = Depends(ExecutorJuypter),
+    variable_transformer: VariableTransformer = Depends(VariableTransformer),
+) -> List[Command]:
+
+    return await command_controller.delete(
         pk=pk,
         user_input=user_input,
         parser=parser,
