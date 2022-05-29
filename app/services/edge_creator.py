@@ -43,42 +43,48 @@ class EdgeCreator:
 
     def get_test_source_code(self, current_indentation_item):
         test_source_code = ""
-        stop_adding = False
+        current_node = current_indentation_item.data
 
-        for indentation_item_index, indentation_item in enumerate(
-            self.all_indentation_items
-        ):
-            if not stop_adding:
-                if "command" in indentation_item.data:
-                    for _ in range(indentation_item.indentation_level):
-                        test_source_code += "\t"
-                    test_source_code += indentation_item.data["command"] + "\n"
+        excluded_nodes = ["For.body", "If.body", "While.body", "If.else"]
+        passed_current_node = False
 
-            if (
-                indentation_item.data["node_id"]
-                == current_indentation_item.data["node_id"]
-            ):
-                for i in range(
-                    indentation_item_index + 2, len(self.all_indentation_items)
-                ):
+        for index, indentation_item in enumerate(self.all_indentation_items):
+            if indentation_item.data["type"] not in excluded_nodes:
+                if passed_current_node:
                     if (
-                        self.all_indentation_items[i].indentation_level
-                        <= current_indentation_item.indentation_level
+                        indentation_item.indentation_level
+                        == current_indentation_item.indentation_level
                     ):
                         for _ in range(current_indentation_item.indentation_level + 1):
                             test_source_code += "\t"
                         test_source_code += "test_passed = True"
-                        stop_adding = True
                         break
-                    else:
-                        if "command" in self.all_indentation_items[i].data:
-                            for _ in range(
-                                self.all_indentation_items[i].indentation_level
-                            ):
+                    elif index == len(self.all_indentation_items) - 1:
+                        if "command" in indentation_item.data:
+                            for _ in range(indentation_item.indentation_level):
                                 test_source_code += "\t"
-                            test_source_code += (
-                                self.all_indentation_items[i].data["command"] + "\n"
-                            )
+                            test_source_code += indentation_item.data["command"] + "\n"
+                        else:
+                            for _ in range(indentation_item.indentation_level):
+                                test_source_code += "\t"
+                            test_source_code += indentation_item.data["type"] + "\n"
+
+                        for _ in range(current_indentation_item.indentation_level + 1):
+                            test_source_code += "\t"
+                        test_source_code += "test_passed = True"
+                        break
+
+                if indentation_item.data["node_id"] == current_node["node_id"]:
+                    passed_current_node = True
+
+                if "command" in indentation_item.data:
+                    for _ in range(indentation_item.indentation_level):
+                        test_source_code += "\t"
+                    test_source_code += indentation_item.data["command"] + "\n"
+                else:
+                    for _ in range(indentation_item.indentation_level):
+                        test_source_code += "\t"
+                    test_source_code += indentation_item.data["type"] + "\n"
 
         return test_source_code
 
@@ -297,6 +303,7 @@ class EdgeCreator:
 
             test_source_code = self.get_test_source_code(current_indentation_item)
             temp_variables_dict = dict(self.variables_dict)
+            print(test_source_code)
             exec(test_source_code, {}, temp_variables_dict)
 
             if "test_passed" in temp_variables_dict:
@@ -417,12 +424,21 @@ class EdgeCreator:
                 "executed": edge["executed"],
             }
 
-            from_json_object = self.get_json_object_for_id(edge["from"])
-            if from_json_object["type"] == "Line":
-                if edge["parent"]:
-                    for executed_edge_pair in self.executed_edges:
-                        if executed_edge_pair["to"] == edge["parent"]:
-                            updated_edge["executed"] = True
+            if edge["parent"]:
+                parent_is_executed = False
+                for executed_edge in self.executed_edges:
+                    if edge["parent"] == executed_edge["to"]:
+                        parent_is_executed = True
+
+                if not parent_is_executed:
+                    updated_edge["executed"] = False
+
+                from_json_object = self.get_json_object_for_id(edge["from"])
+                if from_json_object["type"] == "Line":
+                    if edge["parent"]:
+                        for executed_edge_pair in self.executed_edges:
+                            if executed_edge_pair["to"] == edge["parent"]:
+                                updated_edge["executed"] = True
 
             updated_edges.append(updated_edge)
 

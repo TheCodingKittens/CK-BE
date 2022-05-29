@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import sys
 from io import StringIO
 from typing import List
@@ -91,7 +92,7 @@ class Executor:
 
             # Creating the exec
             # globalsParameter = {"__builtins__": None}
-            localsParameter = history
+            localsParameter = copy.deepcopy(history)
 
             # Get the Variables of the module
             exec(module.decode_str(), globals(), localsParameter)
