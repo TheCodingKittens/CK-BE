@@ -68,6 +68,12 @@ class CustomVisitor(cst.CSTVisitor):
     def visit_Tuple(self, node: "Tuple") -> Optional[bool]:
         return self.visit_node(node)
 
+    def visit_Break(self, node: "Break") -> Optional[bool]:
+        return self.visit_node(node)
+
+    def visit_Continue(self, node: "Continue") -> Optional[bool]:
+        return self.visit_node(node)
+
     def visit_Expr(self, node: "Expr") -> Optional[bool]:
         json_objects = self.nodeToJSONConverter.create_json(node)
         if not json_objects:
@@ -92,6 +98,8 @@ class NodeToJSONConverter:
             "List",
             "Dict",
             "Tuple",
+            "Break",
+            "Continue",
         ]
 
     def create_json(self, node):
@@ -127,6 +135,8 @@ class NodeToJSONConverter:
             json_objects = self.create_json_subscript(node)
         elif classname == "Tuple":
             json_objects = self.create_json_tuple(node)
+        elif classname == "Break" or classname == "Continue":
+            json_objects = self.create_json_break_continue(node)
         else:
             print("ERROR: Unknown node type")
 
@@ -552,6 +562,25 @@ class NodeToJSONConverter:
             "node_id": str(uuid.uuid4()),
             "type": "Line",
             "command": elements_as_string,
+            "nodes": [],
+        }
+
+        json_objects.append(data)
+        return json_objects
+
+    def create_json_break_continue(self, node):
+
+        json_objects = []
+
+        if node.__class__.__name__ == "Break":
+            command = "break"
+        else:
+            command = "continue"
+
+        data = {
+            "node_id": str(uuid.uuid4()),
+            "type": "Line",
+            "command": command,
             "nodes": [],
         }
 

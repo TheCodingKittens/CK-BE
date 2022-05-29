@@ -296,7 +296,6 @@ class EdgeCreator:
 
             test_source_code = self.get_test_source_code(current_indentation_item)
             temp_variables_dict = dict(self.variables_dict)
-            print(test_source_code)
             exec(test_source_code, {}, temp_variables_dict)
 
             if "test_passed" in temp_variables_dict:

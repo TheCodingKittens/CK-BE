@@ -592,3 +592,31 @@ def test_method_calls(parser: Parser):
     assert command3_parsed[0]["type"] == "Line"
     assert command3_parsed[0]["command"] == "list.append([2, 3])"
     assert len(command3_parsed) == 1
+
+
+def test_break_continue(parser: Parser):
+
+    command_1 = """for i in range(10):
+    break"""
+    command_2 = """for i in range(5):
+    continue"""
+
+    byte_command_1 = create_bytecode(command_1)
+    byte_command_2 = create_bytecode(command_2)
+
+    command1_parsed = parser.parse_module(byte_command_1)
+    command2_parsed = parser.parse_module(byte_command_2)
+
+    assert command1_parsed[0]["type"] == "For.test"
+    assert command1_parsed[0]["command"] == "for i in range(10):"
+    assert command1_parsed[1]["type"] == "For.body"
+    assert command1_parsed[1]["nodes"][0]["type"] == "Line"
+    assert command1_parsed[1]["nodes"][0]["command"] == "break"
+    assert len(command1_parsed) == 2
+
+    assert command2_parsed[0]["type"] == "For.test"
+    assert command2_parsed[0]["command"] == "for i in range(5):"
+    assert command2_parsed[1]["type"] == "For.body"
+    assert command2_parsed[1]["nodes"][0]["type"] == "Line"
+    assert command2_parsed[1]["nodes"][0]["command"] == "continue"
+    assert len(command2_parsed) == 2
