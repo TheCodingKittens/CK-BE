@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 
 
@@ -18,6 +19,8 @@ class EdgeCreator:
         self.connections = {}
         self.parents = {}
         self.readable_edges = []
+        self.variables_dict = {}
+        self.executed_edges = []
 
     def create_indentation_levels(self, json_object, indentation_level):
         indentation_item = IndentationItem(
@@ -34,9 +37,56 @@ class EdgeCreator:
 
         self.command_number += 1
 
-        if json_object["nodes"] != []:
+        if json_object["nodes"]:
             for inner_json_object in json_object["nodes"]:
                 self.create_indentation_levels(inner_json_object, indentation_level + 1)
+
+    def get_test_source_code(self, current_indentation_item):
+        test_source_code = ""
+        current_node = current_indentation_item.data
+
+        excluded_nodes = ["For.body", "If.body", "While.body", "If.else"]
+        passed_current_node = False
+
+        for index, indentation_item in enumerate(self.all_indentation_items):
+            if indentation_item.data["type"] not in excluded_nodes:
+                if passed_current_node:
+                    if (
+                        indentation_item.indentation_level
+                        == current_indentation_item.indentation_level
+                    ):
+                        for _ in range(current_indentation_item.indentation_level + 1):
+                            test_source_code += "\t"
+                        test_source_code += "test_passed = True"
+                        break
+                    elif index == len(self.all_indentation_items) - 1:
+                        if "command" in indentation_item.data:
+                            for _ in range(indentation_item.indentation_level):
+                                test_source_code += "\t"
+                            test_source_code += indentation_item.data["command"] + "\n"
+                        else:
+                            for _ in range(indentation_item.indentation_level):
+                                test_source_code += "\t"
+                            test_source_code += indentation_item.data["type"] + "\n"
+
+                        for _ in range(current_indentation_item.indentation_level + 1):
+                            test_source_code += "\t"
+                        test_source_code += "test_passed = True"
+                        break
+
+                if indentation_item.data["node_id"] == current_node["node_id"]:
+                    passed_current_node = True
+
+                if "command" in indentation_item.data:
+                    for _ in range(indentation_item.indentation_level):
+                        test_source_code += "\t"
+                    test_source_code += indentation_item.data["command"] + "\n"
+                else:
+                    for _ in range(indentation_item.indentation_level):
+                        test_source_code += "\t"
+                    test_source_code += indentation_item.data["type"] + "\n"
+
+        return test_source_code
 
     def find_connections(self, json_object):
         connections = []
@@ -69,9 +119,20 @@ class EdgeCreator:
 
         if json_object_type == "Line":
             connections.append(next_indentation_item.data)
+            exec(json_object["command"], {}, self.variables_dict)
+
+            if current_indentation_item.indentation_level == 0:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": next_indentation_item.data["node_id"],
+                    }
+                )
 
         elif json_object_type == "If.test":
+            # this is the body connection
             connections.append(next_indentation_item.data)
+            same_indentation_level_connection = None
 
             for indentation_item in self.all_indentation_items:
                 if (
@@ -80,10 +141,68 @@ class EdgeCreator:
                     == indentation_item.indentation_level
                 ):
                     if indentation_item.data not in connections:
+                        same_indentation_level_connection = indentation_item.data
                         connections.append(indentation_item.data)
+                        # this is the next connection
                         break
+
+            test_source_code = self.get_test_source_code(current_indentation_item)
+            temp_variables_dict = dict(self.variables_dict)
+            exec(test_source_code, {}, temp_variables_dict)
+
+            if "test_passed" in temp_variables_dict:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": next_indentation_item.data["node_id"],
+                    }
+                )
+            else:
+                if same_indentation_level_connection:
+                    self.executed_edges.append(
+                        {
+                            "from": json_object["node_id"],
+                            "to": same_indentation_level_connection["node_id"],
+                        }
+                    )
 
         elif json_object_type == "If.body":
+            same_indentation_level_connection = None
+
+            for indentation_item in self.all_indentation_items:
+                if (
+                    indentation_item.command_number > start_command_number
+                    and current_indentation_item.indentation_level
+                    == indentation_item.indentation_level
+                    and indentation_item.data["type"] != "If.else"
+                ):
+                    if indentation_item.data not in connections:
+                        connections.append(indentation_item.data)
+                        same_indentation_level_connection = indentation_item.data
+                        break
+
+            if same_indentation_level_connection:
+                for from_connection, to_connections in self.connections.items():
+                    if to_connections:
+                        for to_connection in to_connections:
+                            if to_connection["node_id"] == json_object["node_id"]:
+                                for executed_edge_pair in self.executed_edges:
+                                    if (
+                                        executed_edge_pair["to"]
+                                        == json_object["node_id"]
+                                    ):
+                                        self.executed_edges.append(
+                                            {
+                                                "from": json_object["node_id"],
+                                                "to": same_indentation_level_connection[
+                                                    "node_id"
+                                                ],
+                                            }
+                                        )
+
+        elif json_object_type == "If.else":
+            same_indentation_level_connection = None
+
             for indentation_item in self.all_indentation_items:
                 if (
                     indentation_item.command_number > start_command_number
@@ -91,22 +210,32 @@ class EdgeCreator:
                     == indentation_item.indentation_level
                 ):
                     if indentation_item.data not in connections:
+                        same_indentation_level_connection = indentation_item.data
                         connections.append(indentation_item.data)
                         break
 
-        elif json_object_type == "If.else":
-            for indentation_item in self.all_indentation_items:
-                if (
-                    indentation_item.command_number > start_command_number
-                    and current_indentation_item.indentation_level
-                    == indentation_item.indentation_level
-                ):
-                    if indentation_item.data not in connections:
-                        connections.append(indentation_item.data)
-                        break
+            if same_indentation_level_connection:
+                for from_connection, to_connections in self.connections.items():
+                    if to_connections:
+                        for to_connection in to_connections:
+                            if to_connection["node_id"] == json_object["node_id"]:
+                                for executed_edge_pair in self.executed_edges:
+                                    if (
+                                        executed_edge_pair["to"]
+                                        == json_object["node_id"]
+                                    ):
+                                        self.executed_edges.append(
+                                            {
+                                                "from": json_object["node_id"],
+                                                "to": same_indentation_level_connection[
+                                                    "node_id"
+                                                ],
+                                            }
+                                        )
 
         elif json_object_type == "While.test":
             connections.append(next_indentation_item.data)
+            same_indentation_level_connection = None
 
             for indentation_item in self.all_indentation_items:
                 if (
@@ -116,13 +245,49 @@ class EdgeCreator:
                 ):
                     if indentation_item.data not in connections:
                         connections.append(indentation_item.data)
+                        same_indentation_level_connection = indentation_item.data
                         break
+
+            test_source_code = self.get_test_source_code(current_indentation_item)
+            temp_variables_dict = dict(self.variables_dict)
+            exec(test_source_code, {}, temp_variables_dict)
+
+            if "test_passed" in temp_variables_dict:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": next_indentation_item.data["node_id"],
+                    }
+                )
+
+            if same_indentation_level_connection:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": same_indentation_level_connection["node_id"],
+                    }
+                )
 
         elif json_object_type == "While.body":
             connections.append(previous_indentation_item.data)
 
+            for executed_edge_pair in self.executed_edges:
+                if (
+                    executed_edge_pair["from"]
+                    == previous_indentation_item.data["node_id"]
+                    and executed_edge_pair["to"] == json_object["node_id"]
+                ):
+                    self.executed_edges.append(
+                        {
+                            "from": json_object["node_id"],
+                            "to": previous_indentation_item.data["node_id"],
+                        }
+                    )
+
         elif json_object_type == "For.test":
             connections.append(next_indentation_item.data)
+            # this is the body connection
+            same_indentation_level_connection = None
 
             for indentation_item in self.all_indentation_items:
                 if (
@@ -132,17 +297,53 @@ class EdgeCreator:
                 ):
                     if indentation_item.data not in connections:
                         connections.append(indentation_item.data)
+                        same_indentation_level_connection = indentation_item.data
+                        # this is the next connection
                         break
+
+            test_source_code = self.get_test_source_code(current_indentation_item)
+            temp_variables_dict = dict(self.variables_dict)
+            print(test_source_code)
+            exec(test_source_code, {}, temp_variables_dict)
+
+            if "test_passed" in temp_variables_dict:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": next_indentation_item.data["node_id"],
+                    }
+                )
+
+            if same_indentation_level_connection:
+                self.executed_edges.append(
+                    {
+                        "from": json_object["node_id"],
+                        "to": same_indentation_level_connection["node_id"],
+                    }
+                )
 
         elif json_object_type == "For.body":
             connections.append(previous_indentation_item.data)
+
+            for executed_edge_pair in self.executed_edges:
+                if (
+                    executed_edge_pair["from"]
+                    == previous_indentation_item.data["node_id"]
+                    and executed_edge_pair["to"] == json_object["node_id"]
+                ):
+                    self.executed_edges.append(
+                        {
+                            "from": json_object["node_id"],
+                            "to": previous_indentation_item.data["node_id"],
+                        }
+                    )
 
         return connections
 
     def create_connections(self, json_object):
         self.connections[json_object["node_id"]] = self.find_connections(json_object)
 
-        if json_object["nodes"] != []:
+        if json_object["nodes"]:
             for inner_json_object in json_object["nodes"]:
                 self.create_connections(inner_json_object)
 
@@ -158,6 +359,7 @@ class EdgeCreator:
         AND is one indenation level before the node in question.
         :param json_object: the current node being examined
         """
+
         for indentation_item in self.all_indentation_items:
             if indentation_item.data["node_id"] == json_object["node_id"]:
                 if indentation_item.indentation_level >= 1:
@@ -173,7 +375,7 @@ class EdgeCreator:
                             ] = inner_indentation_item.data
                             break
 
-            if json_object["nodes"] != []:
+            if json_object["nodes"]:
                 for inner_json_object in json_object["nodes"]:
                     self.create_parent(inner_json_object)
 
@@ -194,57 +396,80 @@ class EdgeCreator:
                         connection_detail = {
                             "from": json_object_id,
                             "to": connection["node_id"],
+                            "parent": None,
                         }
-                        connection_detail["parent"] = None
+
                         for from_json_object_id, parent in self.parents.items():
                             if from_json_object_id == json_object_id:
                                 connection_detail["parent"] = parent["node_id"]
 
+                        connection_detail["executed"] = False
+
+                        for executed_edge in self.executed_edges:
+                            if (
+                                executed_edge["from"] == json_object_id
+                                and executed_edge["to"] == connection["node_id"]
+                            ):
+                                connection_detail["executed"] = True
+
                         self.edges.append(connection_detail)
+
+        updated_edges = []
+
+        for edge in self.edges:
+            updated_edge = {
+                "from": edge["from"],
+                "to": edge["to"],
+                "parent": edge["parent"],
+                "executed": edge["executed"],
+            }
+
+            if edge["parent"]:
+                parent_is_executed = False
+                for executed_edge in self.executed_edges:
+                    if edge["parent"] == executed_edge["to"]:
+                        parent_is_executed = True
+
+                if not parent_is_executed:
+                    updated_edge["executed"] = False
+
+                from_json_object = self.get_json_object_for_id(edge["from"])
+                if from_json_object["type"] == "Line":
+                    if edge["parent"]:
+                        for executed_edge_pair in self.executed_edges:
+                            if executed_edge_pair["to"] == edge["parent"]:
+                                updated_edge["executed"] = True
+
+            updated_edges.append(updated_edge)
+
+        self.edges = list(updated_edges)
+
+    def display_readable_edges(self):
+
+        for edge in self.edges:
+            from_json_object = self.get_json_object_for_id(edge["from"])
+            to_json_object = self.get_json_object_for_id(edge["to"])
+            parent_json_object = self.get_json_object_for_id(edge["parent"])
+
+            readable_edge = {}
+
+            if "command" in from_json_object:
+                readable_edge["from"] = from_json_object["command"]
             else:
-                connection_detail = {"from": json_object_id, "to": None}
-                connection_detail["parent"] = None
-                self.edges.append(connection_detail)
+                readable_edge["from"] = from_json_object["type"]
 
-    def create_readable_edges(self, show_ids=True, show_output=False):
-        edges_to_print = []
-
-        for edge_pair in self.edges:
-            from_id = edge_pair["from"]
-            to_id = edge_pair["to"]
-            from_node = self.get_json_object_for_id(from_id)
-            parent_node = None
-            to_node = self.get_json_object_for_id(to_id)
-            if "parent" in edge_pair:
-                parent_node = self.get_json_object_for_id(edge_pair["parent"])
-                pass
-            edge_pair_print_format = {"from": None, "to": None}
-
-            if not show_ids:
-                if from_node:
-                    if "command" in from_node:
-                        edge_pair_print_format["from"] = from_node["command"]
-                    else:
-                        edge_pair_print_format["from"] = from_node["type"]
-
-                if to_node:
-                    if "command" in to_node:
-                        edge_pair_print_format["to"] = to_node["command"]
-                    else:
-                        edge_pair_print_format["to"] = to_node["type"]
-
-                if parent_node:
-                    if "command" in parent_node:
-                        edge_pair_print_format["parent"] = parent_node["command"]
-                    else:
-                        edge_pair_print_format["parent"] = parent_node["type"]
+            if "command" in to_json_object:
+                readable_edge["to"] = to_json_object["command"]
             else:
-                edge_pair_print_format["from"] = from_id
-                edge_pair_print_format["to"] = to_id
+                readable_edge["to"] = to_json_object["type"]
 
-            edges_to_print.append(edge_pair_print_format)
+            if parent_json_object:
+                readable_edge["parent"] = parent_json_object["type"]
+            else:
+                readable_edge["parent"] = None
 
-            if show_output:
-                print(edge_pair_print_format)
+            readable_edge["executed"] = edge["executed"]
 
-            self.readable_edges.append(edge_pair_print_format)
+            self.readable_edges.append(readable_edge)
+
+        print(json.dumps(self.readable_edges, indent=4))

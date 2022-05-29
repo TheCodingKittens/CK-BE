@@ -89,8 +89,8 @@ class CommandController:
         )
 
         # create and save variables
-        new_variables = variable_transformer.transform_variables(new_variables)
-        for var in new_variables:
+        saveable_variables = variable_transformer.transform_variables(new_variables)
+        for var in saveable_variables:
             await crud.variable.create(
                 Variable(
                     command_pk=db_command.pk,
@@ -106,6 +106,7 @@ class CommandController:
 
         # create and save edges
         edgeCreator = EdgeCreator(nodes)
+        edgeCreator.variables_dict = latest_variables
         edgeCreator.create_edges()
 
         for edge in edgeCreator.edges:
@@ -115,6 +116,7 @@ class CommandController:
                     source_node=edge["from"],
                     target_node=edge["to"],
                     parent_node=edge["parent"],
+                    executed=edge["executed"],
                 )
             )
 

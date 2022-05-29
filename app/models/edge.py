@@ -14,9 +14,12 @@ class Edge(HashModel):
     created_at: datetime = Field(
         title="Created At", default_factory=datetime.utcnow, index=True
     )
-    source_node: str = Field(title="The Source of the Set", index=True)
-    target_node: Optional[str] = Field(title="The Target of the Set", index=True)
-    parent_node: Optional[str] = Field(title="The Parent of the Set", index=True)
+    source_node: str = Field(title="The Source of the Edge", index=True)
+    target_node: Optional[str] = Field(title="The Target of the Edge", index=True)
+    parent_node: Optional[str] = Field(title="The Parent of the Edge", index=True)
+    executed: Optional[str] = Field(
+        title="The Execution of the Edge (True/False)", index=True
+    )
 
     class Meta:
         database = get_redis_connection(
