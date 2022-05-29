@@ -45,3 +45,9 @@ You might need to enter the following info:
 
     host: redis
     port: 6379
+    
+    
+You are able to see the data in the Redis DB:
+
+![image](https://user-images.githubusercontent.com/19205392/170887384-b7b3759c-91b5-4138-a25b-9471cc3d64be.png)
+
