@@ -464,7 +464,11 @@ class NodeToJSONConverter:
 
         json_objects = []
 
-        element = node.value.value
+        if node.value.__class__.__name__ in self.revisitable_nodes:
+            element = self.revisit_for_command(node.value)
+        else:
+            element = node.value.value
+
         content_class = node.slice[0].slice
 
         if content_class.__class__.__name__ == "Index":
@@ -549,8 +553,7 @@ class NodeToJSONConverter:
 # """
 
 py_source = """
-while a < 3:
-    b += 1
+b = a[0][1][4][i]
 """
 
 # py_source = """
